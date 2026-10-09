@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useUkada } from '../../context/UkadaContext';
 import { InteractiveMap } from '../InteractiveMap';
+import { resolveImageUrl } from '../../utils/assetResolver';
 import {
   Power,
   Navigation,
@@ -93,7 +94,7 @@ export const DriverExperience: React.FC = () => {
       <header className="sticky top-0 z-30 flex items-center justify-between px-4 py-3 bg-slate-900/95 backdrop-blur-md border-b border-slate-800">
         <div className="flex items-center gap-3">
           <img
-            src={currentDriver.photoUrl}
+            src={resolveImageUrl(currentDriver.photoUrl)}
             alt={currentDriver.fullName}
             className="w-10 h-10 rounded-full object-cover border-2 border-amber-500 shrink-0"
           />
@@ -480,7 +481,7 @@ export const DriverExperience: React.FC = () => {
 
             <div className="flex items-center gap-4">
               <img
-                src={currentDriver.photoUrl}
+                src={resolveImageUrl(currentDriver.photoUrl)}
                 alt={currentDriver.fullName}
                 className="w-20 h-20 rounded-2xl object-cover border-2 border-amber-500 shadow-md"
               />

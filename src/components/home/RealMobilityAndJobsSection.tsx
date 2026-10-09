@@ -5,6 +5,7 @@ import {
   ASSET_RIDE_BOOKED_APP,
   ASSET_RIDERS_JOBS_TEAM,
 } from '../../data/mockData';
+import { resolveImageUrl } from '../../utils/assetResolver';
 import {
   Briefcase,
   Coins,
@@ -174,7 +175,7 @@ export const RealMobilityAndJobsSection: React.FC<RealMobilityAndJobsSectionProp
           >
             <div className="relative h-60 w-full overflow-hidden bg-slate-950">
               <img
-                src={ASSET_OKADA_PICKUP}
+                src={resolveImageUrl(ASSET_OKADA_PICKUP)}
                 alt="Everyday natural Nigerian commercial street pickup with Okada rider in safety helmet"
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               />
@@ -218,7 +219,7 @@ export const RealMobilityAndJobsSection: React.FC<RealMobilityAndJobsSectionProp
           >
             <div className="relative h-60 w-full overflow-hidden bg-slate-950">
               <img
-                src={ASSET_KEKE_BOARDING}
+                src={resolveImageUrl(ASSET_KEKE_BOARDING)}
                 alt="Nigerian commercial yellow tricycle Keke picking up passengers with market goods"
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               />
@@ -262,7 +263,7 @@ export const RealMobilityAndJobsSection: React.FC<RealMobilityAndJobsSectionProp
           >
             <div className="relative h-60 w-full overflow-hidden bg-slate-950">
               <img
-                src={ASSET_RIDE_BOOKED_APP}
+                src={resolveImageUrl(ASSET_RIDE_BOOKED_APP)}
                 alt="Smartphone booking interface showing direct Call Driver button connecting passenger"
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               />
@@ -345,7 +346,7 @@ export const RealMobilityAndJobsSection: React.FC<RealMobilityAndJobsSectionProp
           {/* Right Column: Authentic Photography of Nigerian Driver Team */}
           <div className="lg:col-span-5 relative rounded-2xl overflow-hidden border border-slate-800 shadow-2xl h-[300px] sm:h-[360px] bg-slate-950">
             <img
-              src={ASSET_RIDERS_JOBS_TEAM}
+              src={resolveImageUrl(ASSET_RIDERS_JOBS_TEAM)}
               alt="Real Nigerian Okada riders and Keke driver wearing UKADA safety vests proudly holding earnings phones"
               className="w-full h-full object-cover"
             />

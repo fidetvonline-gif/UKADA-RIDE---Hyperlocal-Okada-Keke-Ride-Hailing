@@ -1,13 +1,43 @@
 import { Driver, LocationLandmark, FareRule, ServiceZone, ComplaintTicket, AuditLog, TripBooking } from '../types';
 
-export const ASSET_OKADA = '/src/assets/images/nigerian_okada_motorcycle_1791573121916.jpg';
-export const ASSET_KEKE = '/src/assets/images/nigerian_keke_tricycle_1791573137305.jpg';
-export const ASSET_AVATAR_1 = '/src/assets/images/ukada_driver_avatar_1_1791569475088.jpg';
-export const ASSET_AVATAR_2 = '/src/assets/images/ukada_driver_avatar_2_1791569485339.jpg';
-export const ASSET_OKADA_PICKUP = '/src/assets/images/natural_nigerian_okada_pickup_1791577371490.jpg';
-export const ASSET_KEKE_BOARDING = '/src/assets/images/keke_passengers_boarding_1791574423699.jpg';
-export const ASSET_RIDE_BOOKED_APP = '/src/assets/images/passenger_booking_phone_1791574453780.jpg';
-export const ASSET_RIDERS_JOBS_TEAM = '/src/assets/images/nigerian_riders_job_team_1791577399778.jpg';
+// Direct ES module asset imports to ensure correct domain & bundled asset resolution across all deployment domains
+import okadaMain from '../assets/images/nigerian_okada_motorcycle_1791573121916.jpg';
+import kekeMain from '../assets/images/nigerian_keke_tricycle_1791573137305.jpg';
+import avatar1 from '../assets/images/ukada_driver_avatar_1_1791569475088.jpg';
+import avatar2 from '../assets/images/ukada_driver_avatar_2_1791569485339.jpg';
+import okadaPickup from '../assets/images/natural_nigerian_okada_pickup_1791577371490.jpg';
+import kekeBoarding from '../assets/images/keke_passengers_boarding_1791574423699.jpg';
+import rideBookedApp from '../assets/images/passenger_booking_phone_1791574453780.jpg';
+import ridersJobTeam from '../assets/images/nigerian_riders_job_team_1791577399778.jpg';
+
+// Real vehicle turntable assets (Okada)
+import okadaAngle0 from '../assets/images/okada_front_angle_1791573155731.jpg';
+import okadaAngle45 from '../assets/images/okada_front_right_45_1791576421096.jpg';
+import okadaAngle90 from '../assets/images/nigerian_okada_motorcycle_1791573121916.jpg';
+import okadaAngle135 from '../assets/images/okada_rear_right_135_1791576437806.jpg';
+import okadaAngle180 from '../assets/images/okada_rear_angle_1791573171575.jpg';
+import okadaAngle225 from '../assets/images/okada_rear_left_225_1791576453743.jpg';
+import okadaAngle270 from '../assets/images/okada_left_profile_1791573233980.jpg';
+import okadaAngle315 from '../assets/images/okada_front_left_315_1791576470779.jpg';
+
+// Real vehicle turntable assets (Keke)
+import kekeAngle0 from '../assets/images/keke_front_angle_1791573189605.jpg';
+import kekeAngle45 from '../assets/images/keke_front_right_45_1791576490050.jpg';
+import kekeAngle90 from '../assets/images/nigerian_keke_tricycle_1791573137305.jpg';
+import kekeAngle135 from '../assets/images/keke_rear_right_135_1791576509768.jpg';
+import kekeAngle180 from '../assets/images/keke_rear_angle_1791573211928.jpg';
+import kekeAngle225 from '../assets/images/keke_rear_left_225_1791576531571.jpg';
+import kekeAngle270 from '../assets/images/keke_left_profile_1791573255820.jpg';
+import kekeAngle315 from '../assets/images/keke_front_left_315_1791576551101.jpg';
+
+export const ASSET_OKADA = okadaMain;
+export const ASSET_KEKE = kekeMain;
+export const ASSET_AVATAR_1 = avatar1;
+export const ASSET_AVATAR_2 = avatar2;
+export const ASSET_OKADA_PICKUP = okadaPickup;
+export const ASSET_KEKE_BOARDING = kekeBoarding;
+export const ASSET_RIDE_BOOKED_APP = rideBookedApp;
+export const ASSET_RIDERS_JOBS_TEAM = ridersJobTeam;
 
 export interface VehicleTurntableAngle {
   angle: number;
@@ -22,56 +52,56 @@ export const REAL_OKADA_TURNTABLE: VehicleTurntableAngle[] = [
     angle: 0,
     label: 'Front Headlight & Crash Guard',
     badge: 'Front Profile (0°)',
-    src: '/src/assets/images/okada_front_angle_1791573155731.jpg',
+    src: okadaAngle0,
     details: 'Round glass headlight, chrome handlebars, front safety crash bar with reflective tape, and verified Nigerian plate (FST-345-AB).'
   },
   {
     angle: 45,
     label: 'Front-Right Quarter Angle',
     badge: 'Front-Right (45°)',
-    src: '/src/assets/images/okada_front_right_45_1791576421096.jpg',
+    src: okadaAngle45,
     details: 'Bajaj Boxer BM 150cc teardrop tank, front spoked tire, chrome leg protector, and telescopic front fork suspension.'
   },
   {
     angle: 90,
     label: 'Right Side Showroom Profile',
     badge: 'Right Side (90°)',
-    src: '/src/assets/images/nigerian_okada_motorcycle_1791573121916.jpg',
+    src: okadaAngle90,
     details: 'Long dual-passenger seat, chrome exhaust pipe with heat shield, rear suspension shock, and steel luggage rack.'
   },
   {
     angle: 135,
     label: 'Rear-Right Quarter Angle',
     badge: 'Rear-Right (135°)',
-    src: '/src/assets/images/okada_rear_right_135_1791576437806.jpg',
+    src: okadaAngle135,
     details: 'Rear exhaust muffler, Nigerian registration plate (BDG 781 AZ Lagos), and heavy welded steel luggage carrier rack.'
   },
   {
     angle: 180,
     label: 'Rear Tail Rack & Plate',
     badge: 'Rear Angle (180°)',
-    src: '/src/assets/images/okada_rear_angle_1791573171575.jpg',
+    src: okadaAngle180,
     details: 'Rear tail brake lamp, turn indicators, rear tyre with mudguard, and dual passenger grab rack.'
   },
   {
     angle: 225,
     label: 'Rear-Left Quarter Angle',
     badge: 'Rear-Left (225°)',
-    src: '/src/assets/images/okada_rear_left_225_1791576453743.jpg',
+    src: okadaAngle225,
     details: 'Enclosed chain cover, left rear shock absorber, side battery compartment, helmet carrier, and Nigerian plate.'
   },
   {
     angle: 270,
     label: 'Left Side Profile & Engine Block',
     badge: 'Left Side (270°)',
-    src: '/src/assets/images/okada_left_profile_1791573233980.jpg',
+    src: okadaAngle270,
     details: '150cc 4-stroke air-cooled engine block, carburettor, kick-starter, gear shift lever, and side stand.'
   },
   {
     angle: 315,
     label: 'Front-Left Quarter Angle',
     badge: 'Front-Left (315°)',
-    src: '/src/assets/images/okada_front_left_315_1791576470779.jpg',
+    src: okadaAngle315,
     details: 'Left front crash guard, chrome headlight housing, spoked wheel, red fuel tank with Bajaj emblem, and handlebar grip.'
   }
 ];
@@ -81,56 +111,56 @@ export const REAL_KEKE_TURNTABLE: VehicleTurntableAngle[] = [
     angle: 0,
     label: 'Front Windshield & Wiper',
     badge: 'Front Cabin (0°)',
-    src: '/src/assets/images/keke_front_angle_1791573189605.jpg',
+    src: kekeAngle0,
     details: 'Curved yellow steel apron, safety glass windshield with articulated wiper blade, single central headlight pod, and KJA-789-LG plate.'
   },
   {
     angle: 45,
     label: 'Front-Right Quarter Angle',
     badge: 'Front-Right (45°)',
-    src: '/src/assets/images/keke_front_right_45_1791576490050.jpg',
+    src: kekeAngle45,
     details: 'Official Akwa Ibom State green regulatory stripe on yellow cab, curved windshield with wiper, and black canvas canopy roof.'
   },
   {
     angle: 90,
     label: 'Right Side Cabin & Livery',
     badge: 'Right Side (90°)',
-    src: '/src/assets/images/nigerian_keke_tricycle_1791573137305.jpg',
+    src: kekeAngle90,
     details: 'Commercial yellow body, passenger entry, roll-cage tubular pillars, heavy-duty weather canopy, and rear spare wheel.'
   },
   {
     angle: 135,
     label: 'Rear-Right Quarter Angle',
     badge: 'Rear-Right (135°)',
-    src: '/src/assets/images/keke_rear_right_135_1791576509768.jpg',
+    src: kekeAngle135,
     details: 'Rear spare tyre with "BAJAJ RE" cover, "GOD\'S GRACE" motto, Akwa Ibom Land of Promise livery, and registration UY-1234-AG.'
   },
   {
     angle: 180,
     label: 'Rear Cabin & Slogan Spare Tire',
     badge: 'Rear View (180°)',
-    src: '/src/assets/images/keke_rear_angle_1791573211928.jpg',
+    src: kekeAngle180,
     details: 'Authentic rear spare tyre with cover, chrome impact bumper, tail lights, and Akwa Ibom registration (MSA-987-KM).'
   },
   {
     angle: 225,
     label: 'Rear-Left Quarter Angle',
     badge: 'Rear-Left (225°)',
-    src: '/src/assets/images/keke_rear_left_225_1791576531571.jpg',
+    src: kekeAngle225,
     details: 'Rear left side with "AKWA IBOM STATE COMMERCIAL TRICYCLE" stripe, rear window, spare wheel, and heavy-duty chassis.'
   },
   {
     angle: 270,
     label: 'Left Side Profile & Passenger Cabin',
     badge: 'Left Profile (270°)',
-    src: '/src/assets/images/keke_left_profile_1791573255820.jpg',
+    src: kekeAngle270,
     details: 'Driver steering handlebar, 3-passenger rear cushioned bench, rolled-up all-weather side rain curtains, and wheels.'
   },
   {
     angle: 315,
     label: 'Front-Left Quarter Angle',
     badge: 'Front-Left (315°)',
-    src: '/src/assets/images/keke_front_left_315_1791576551101.jpg',
+    src: kekeAngle315,
     details: 'Front windshield with wiper, "AKWA IBOM STATE" green livery, front steer tire with yellow fender, and black canvas canopy.'
   }
 ];

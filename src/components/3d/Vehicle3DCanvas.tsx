@@ -9,6 +9,7 @@ import {
   VehicleTurntableAngle,
 } from '../../data/mockData';
 import { vehicleSoundEngine } from '../../utils/vehicleSoundEngine';
+import { resolveImageUrl } from '../../utils/assetResolver';
 import {
   RotateCw,
   Play,
@@ -529,7 +530,7 @@ export const Vehicle3DCanvas: React.FC<Vehicle3DCanvasProps> = ({
         >
           {/* Primary Active Angle Real Photograph */}
           <img
-            src={activeAngleData.src}
+            src={resolveImageUrl(activeAngleData.src)}
             alt={`${vehicleType} ${activeAngleData.label}`}
             className="max-h-[350px] sm:max-h-[440px] lg:max-h-[510px] w-auto object-contain select-none drop-shadow-[0_30px_45px_rgba(0,0,0,0.95)] transition-opacity duration-150"
             style={{
@@ -541,7 +542,7 @@ export const Vehicle3DCanvas: React.FC<Vehicle3DCanvasProps> = ({
           {/* Smooth Crossfade Secondary Angle Image during transition */}
           {crossfadeWeight > 0.05 && (
             <img
-              src={nextAngleData.src}
+              src={resolveImageUrl(nextAngleData.src)}
               alt={`${vehicleType} ${nextAngleData.label}`}
               className="max-h-[350px] sm:max-h-[440px] lg:max-h-[510px] w-auto object-contain select-none drop-shadow-[0_30px_45px_rgba(0,0,0,0.95)] absolute inset-0 m-auto transition-opacity duration-150"
               style={{

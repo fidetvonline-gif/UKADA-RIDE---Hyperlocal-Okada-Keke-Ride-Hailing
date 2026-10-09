@@ -4,6 +4,7 @@ import { Driver, TripBooking, VehicleType, DriverMode, DriverStatus, FareRule } 
 import { InteractiveMap } from '../InteractiveMap';
 import { UkadaLogo } from '../common/UkadaLogo';
 import { ASSET_AVATAR_1, ASSET_AVATAR_2 } from '../../data/mockData';
+import { resolveImageUrl } from '../../utils/assetResolver';
 import {
   Activity,
   Users,
@@ -29,6 +30,7 @@ import {
 
 export const AdminControlDashboard: React.FC = () => {
   const {
+    isSupabaseConfigured,
     trips,
     drivers,
     fareRules,
@@ -173,6 +175,12 @@ export const AdminControlDashboard: React.FC = () => {
 
         <div className="flex items-center gap-4 text-xs">
           <div className="hidden sm:flex items-center gap-3 text-slate-300">
+            <span className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-800/80 border border-slate-700/80 text-[10px] font-mono">
+              <span className={`w-1.5 h-1.5 rounded-full ${isSupabaseConfigured ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+              <span className="text-slate-300">
+                {isSupabaseConfigured ? 'Supabase Live' : 'Supabase Client Active'}
+              </span>
+            </span>
             <span className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               <span>Fleet Online: <strong className="text-white font-mono tabular-nums">{onlineDrivers.length}/{drivers.length}</strong></span>
@@ -468,7 +476,7 @@ export const AdminControlDashboard: React.FC = () => {
                             >
                               <div className="flex items-center gap-2">
                                 <img
-                                  src={d.photoUrl}
+                                  src={resolveImageUrl(d.photoUrl)}
                                   alt={d.fullName}
                                   className="w-8 h-8 rounded-full object-cover shrink-0"
                                 />
@@ -584,7 +592,7 @@ export const AdminControlDashboard: React.FC = () => {
                 >
                   <div className="flex items-start gap-3">
                     <img
-                      src={driver.photoUrl}
+                      src={resolveImageUrl(driver.photoUrl)}
                       alt={driver.fullName}
                       className="w-12 h-12 rounded-full object-cover border border-amber-500 shrink-0"
                     />

@@ -4,6 +4,7 @@ import { VehicleType, LocationLandmark } from '../../types';
 import { InteractiveMap } from '../InteractiveMap';
 import { UkadaLogo } from '../common/UkadaLogo';
 import { ASSET_OKADA, ASSET_KEKE } from '../../data/mockData';
+import { resolveImageUrl } from '../../utils/assetResolver';
 import {
   MapPin,
   Navigation,
@@ -294,7 +295,7 @@ export const PassengerExperience: React.FC = () => {
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-slate-950/80 p-4 rounded-xl border border-slate-800">
                     <div className="flex items-center gap-3">
                       <img
-                        src={activeTrip.assignedDriver.photoUrl}
+                        src={resolveImageUrl(activeTrip.assignedDriver.photoUrl)}
                         alt={activeTrip.assignedDriver.fullName}
                         className="w-14 h-14 rounded-full object-cover border-2 border-amber-500 shadow-md shrink-0"
                       />
@@ -471,7 +472,7 @@ export const PassengerExperience: React.FC = () => {
                       }`}
                     >
                       <img
-                        src={ASSET_OKADA}
+                        src={resolveImageUrl(ASSET_OKADA)}
                         alt="UKADA Okada Rider"
                         className="w-16 h-12 rounded-lg object-cover shrink-0 border border-slate-700"
                       />
@@ -499,7 +500,7 @@ export const PassengerExperience: React.FC = () => {
                       }`}
                     >
                       <img
-                        src={ASSET_KEKE}
+                        src={resolveImageUrl(ASSET_KEKE)}
                         alt="UKADA Keke Tricycle"
                         className="w-16 h-12 rounded-lg object-cover shrink-0 border border-slate-700"
                       />
@@ -756,7 +757,7 @@ export const PassengerExperience: React.FC = () => {
           <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-5 shadow-2xl flex flex-col items-center text-center gap-4">
             <div className="relative">
               <img
-                src={activeTrip.assignedDriver.photoUrl}
+                src={resolveImageUrl(activeTrip.assignedDriver.photoUrl)}
                 alt={activeTrip.assignedDriver.fullName}
                 className="w-20 h-20 rounded-full object-cover border-4 border-emerald-500 shadow-xl"
               />

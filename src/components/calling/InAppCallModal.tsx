@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useUkada } from '../../context/UkadaContext';
 import { callAudioEngine } from '../../utils/callAudioEngine';
+import { resolveImageUrl } from '../../utils/assetResolver';
 import {
   Phone,
   PhoneOff,
@@ -119,7 +120,7 @@ export const InAppCallModal: React.FC = () => {
       <div className="fixed bottom-5 right-5 z-50 flex items-center gap-3 bg-slate-900/95 backdrop-blur-md border border-amber-500/40 shadow-2xl p-2.5 sm:p-3 rounded-2xl animate-in slide-in-from-bottom-3 max-w-sm">
         <div className="relative">
           <img
-            src={activeCall.receiverPhoto}
+            src={resolveImageUrl(activeCall.receiverPhoto)}
             alt={activeCall.receiverName}
             className="w-10 h-10 rounded-full object-cover border-2 border-emerald-400"
           />
@@ -221,7 +222,7 @@ export const InAppCallModal: React.FC = () => {
             )}
 
             <img
-              src={activeCall.receiverPhoto}
+              src={resolveImageUrl(activeCall.receiverPhoto)}
               alt={activeCall.receiverName}
               className="w-24 h-24 sm:w-28 sm:h-28 rounded-full object-cover border-4 border-slate-800 shadow-2xl relative z-10"
             />

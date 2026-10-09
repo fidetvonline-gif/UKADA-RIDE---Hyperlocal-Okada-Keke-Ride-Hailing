@@ -20,9 +20,15 @@ import {
   INITIAL_COMPLAINTS,
   INITIAL_AUDIT_LOGS,
   INITIAL_LANDMARKS,
+  ASSET_AVATAR_1,
 } from '../data/mockData';
+import { resolveImageUrl } from '../utils/assetResolver';
+import { supabaseService, isSupabaseConfigured } from '../lib/supabase';
 
 interface UkadaContextType {
+  // Supabase cloud persistence status
+  isSupabaseConfigured: boolean;
+
   // Views
   activeView: 'home' | 'passenger' | 'driver' | 'admin' | 'simulator';
   setActiveView: (view: 'home' | 'passenger' | 'driver' | 'admin' | 'simulator') => void;
@@ -107,11 +113,6 @@ interface UkadaContextType {
 
 const UkadaContext = createContext<UkadaContextType | undefined>(undefined);
 
-const STORAGE_KEY_TRIPS = 'ukada_trips_v1';
-const STORAGE_KEY_DRIVERS = 'ukada_drivers_v1';
-const STORAGE_KEY_FARES = 'ukada_fares_v1';
-const STORAGE_KEY_COMPLAINTS = 'ukada_complaints_v1';
-
 export const UkadaProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [activeView, setActiveView] = useState<'home' | 'passenger' | 'driver' | 'admin' | 'simulator'>('home');
   
@@ -123,78 +124,90 @@ export const UkadaProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   const [activeDriverId, setActiveDriverId] = useState<string>('drv-001');
 
-  // Load from localStorage or defaults
-  const [trips, setTrips] = useState<TripBooking[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY_TRIPS);
-      return saved ? JSON.parse(saved) : INITIAL_TRIPS;
-    } catch {
-      return INITIAL_TRIPS;
-    }
-  });
-
-  const [drivers, setDrivers] = useState<Driver[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY_DRIVERS);
-      return saved ? JSON.parse(saved) : INITIAL_DRIVERS;
-    } catch {
-      return INITIAL_DRIVERS;
-    }
-  });
-
-  const [fareRules, setFareRules] = useState<FareRule[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY_FARES);
-      return saved ? JSON.parse(saved) : INITIAL_FARE_RULES;
-    } catch {
-      return INITIAL_FARE_RULES;
-    }
-  });
-
+  // Supabase-backed state collections
+  const [trips, setTrips] = useState<TripBooking[]>(INITIAL_TRIPS);
+  const [drivers, setDrivers] = useState<Driver[]>(INITIAL_DRIVERS);
+  const [fareRules, setFareRules] = useState<FareRule[]>(INITIAL_FARE_RULES);
   const [serviceZones, setServiceZones] = useState<ServiceZone[]>(INITIAL_SERVICE_ZONES);
-
-  const [complaints, setComplaints] = useState<ComplaintTicket[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY_COMPLAINTS);
-      return saved ? JSON.parse(saved) : INITIAL_COMPLAINTS;
-    } catch {
-      return INITIAL_COMPLAINTS;
-    }
-  });
-
+  const [complaints, setComplaints] = useState<ComplaintTicket[]>(INITIAL_COMPLAINTS);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>(INITIAL_AUDIT_LOGS);
 
-  // Sync to storage
+  // Initialize data from Supabase Service Provider on mount
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY_TRIPS, JSON.stringify(trips));
-    } catch (e) {
-      console.error(e);
-    }
+    let isMounted = true;
+
+    const initializeSupabaseData = async () => {
+      try {
+        const [loadedTrips, loadedDrivers, loadedFares, loadedComplaints] = await Promise.all([
+          supabaseService.fetchTrips(INITIAL_TRIPS),
+          supabaseService.fetchDrivers(INITIAL_DRIVERS),
+          supabaseService.fetchFareRules(INITIAL_FARE_RULES),
+          supabaseService.fetchComplaints(INITIAL_COMPLAINTS),
+        ]);
+
+        if (isMounted) {
+          setTrips(loadedTrips);
+          setDrivers(loadedDrivers);
+          setFareRules(loadedFares);
+          setComplaints(loadedComplaints);
+        }
+      } catch (err) {
+        console.warn('Supabase initialization encountered fallback:', err);
+      }
+    };
+
+    initializeSupabaseData();
+
+    // Setup Supabase Realtime Channels for live multi-client synchronization
+    const tripSub = supabaseService.subscribeToTrips(({ event, trip }) => {
+      if (!isMounted) return;
+      setTrips((prev) => {
+        const idx = prev.findIndex((t) => t.id === trip.id);
+        if (idx >= 0) {
+          const updated = [...prev];
+          updated[idx] = trip;
+          return updated;
+        }
+        return [trip, ...prev];
+      });
+    });
+
+    const driverSub = supabaseService.subscribeToDrivers(({ event, driver }) => {
+      if (!isMounted) return;
+      setDrivers((prev) => {
+        const idx = prev.findIndex((d) => d.id === driver.id);
+        if (idx >= 0) {
+          const updated = [...prev];
+          updated[idx] = driver;
+          return updated;
+        }
+        return [...prev, driver];
+      });
+    });
+
+    return () => {
+      isMounted = false;
+      tripSub?.unsubscribe();
+      driverSub?.unsubscribe();
+    };
+  }, []);
+
+  // Sync state mutations to Supabase Provider
+  useEffect(() => {
+    supabaseService.syncAllTrips(trips);
   }, [trips]);
 
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY_DRIVERS, JSON.stringify(drivers));
-    } catch (e) {
-      console.error(e);
-    }
+    supabaseService.syncAllDrivers(drivers);
   }, [drivers]);
 
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY_FARES, JSON.stringify(fareRules));
-    } catch (e) {
-      console.error(e);
-    }
+    supabaseService.syncFareRules(fareRules);
   }, [fareRules]);
 
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY_COMPLAINTS, JSON.stringify(complaints));
-    } catch (e) {
-      console.error(e);
-    }
+    // Complaints sync
+    complaints.forEach((c) => supabaseService.saveComplaint(c));
   }, [complaints]);
 
   // Derived current driver
@@ -811,10 +824,11 @@ export const UkadaProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         callerRole === 'passenger'
           ? targetDriver?.phone || '+234 803 123 4567'
           : params?.targetPassenger?.phone || activeTrip?.passengerPhone || passengerProfile.phone;
-      const receiverPhoto =
+      const receiverPhoto = resolveImageUrl(
         callerRole === 'passenger'
-          ? targetDriver?.photoUrl || drivers[0].photoUrl
-          : '/src/assets/images/ukada_driver_avatar_1_1791569485608.jpg';
+          ? targetDriver?.photoUrl || drivers[0]?.photoUrl || ASSET_AVATAR_1
+          : ASSET_AVATAR_1
+      );
 
       const callObj: InAppVoiceCall = {
         id: `call-${Date.now()}`,
@@ -855,10 +869,7 @@ export const UkadaProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   );
 
   const resetAllData = useCallback(() => {
-    localStorage.removeItem(STORAGE_KEY_TRIPS);
-    localStorage.removeItem(STORAGE_KEY_DRIVERS);
-    localStorage.removeItem(STORAGE_KEY_FARES);
-    localStorage.removeItem(STORAGE_KEY_COMPLAINTS);
+    supabaseService.resetAllData();
     setTrips(INITIAL_TRIPS);
     setDrivers(INITIAL_DRIVERS);
     setFareRules(INITIAL_FARE_RULES);
@@ -870,6 +881,7 @@ export const UkadaProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   return (
     <UkadaContext.Provider
       value={{
+        isSupabaseConfigured: isSupabaseConfigured(),
         activeView,
         setActiveView,
         passengerProfile,
