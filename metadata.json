@@ -1,0 +1,6 @@
+{
+  "name": "UKADA RIDE - Hyperlocal Okada & Keke Ride-Hailing",
+  "description": "Hyperlocal ride-hailing and dispatch platform for Okada and Keke transport in Ukana and Akwa Ibom State.",
+  "requestFramePermissions": ["geolocation", "microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
