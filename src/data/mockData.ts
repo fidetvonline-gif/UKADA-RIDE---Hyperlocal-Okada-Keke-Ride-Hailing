@@ -5,8 +5,6 @@ import okadaMain from '../assets/images/nigerian_okada_motorcycle_1791573121916.
 import kekeMain from '../assets/images/nigerian_keke_tricycle_1791573137305.jpg';
 import avatar1 from '../assets/images/ukada_driver_avatar_1_1791569475088.jpg';
 import avatar2 from '../assets/images/ukada_driver_avatar_2_1791569485339.jpg';
-import okadaPickup from '../assets/images/natural_nigerian_okada_pickup_1791577371490.jpg';
-import kekeBoarding from '../assets/images/keke_passengers_boarding_1791574423699.jpg';
 import rideBookedApp from '../assets/images/passenger_booking_phone_1791574453780.jpg';
 import ridersJobTeam from '../assets/images/nigerian_riders_job_team_1791577399778.jpg';
 
@@ -34,8 +32,8 @@ export const ASSET_OKADA = okadaMain;
 export const ASSET_KEKE = kekeMain;
 export const ASSET_AVATAR_1 = avatar1;
 export const ASSET_AVATAR_2 = avatar2;
-export const ASSET_OKADA_PICKUP = okadaPickup;
-export const ASSET_KEKE_BOARDING = kekeBoarding;
+export const ASSET_OKADA_PICKUP = okadaMain;
+export const ASSET_KEKE_BOARDING = kekeMain;
 export const ASSET_RIDE_BOOKED_APP = rideBookedApp;
 export const ASSET_RIDERS_JOBS_TEAM = ridersJobTeam;
 
