@@ -17,7 +17,9 @@ export const DriverOnboardingModal: React.FC<DriverOnboardingModalProps> = ({
   const { registerDriver } = useUkada();
 
   const [fullName, setFullName] = useState<string>('');
+  const [email, setEmail] = useState<string>('');
   const [phone, setPhone] = useState<string>('+234 ');
+  const [nin, setNin] = useState<string>('');
   const [driverMode, setDriverMode] = useState<DriverMode>('app');
   const [vehicleType, setVehicleType] = useState<VehicleType>('okada');
   const [vehicleReg, setVehicleReg] = useState<string>('AKW-');
@@ -95,27 +97,22 @@ export const DriverOnboardingModal: React.FC<DriverOnboardingModalProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="flex flex-col gap-1">
                 <label className="text-slate-300 font-semibold">Full Name *</label>
-                <input
-                  type="text"
-                  required
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="e.g. Edidiong Bassey"
-                  className="bg-slate-950 border border-slate-800 rounded-xl p-3 text-white focus:outline-none focus:border-amber-500"
-                />
+                <input type="text" required value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="e.g. Edidiong Bassey" className="bg-slate-950 border border-slate-800 rounded-xl p-3 text-white focus:outline-none focus:border-amber-500" />
               </div>
-
+              <div className="flex flex-col gap-1">
+                <label className="text-slate-300 font-semibold">Email Address *</label>
+                <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="e.g. name@example.com" className="bg-slate-950 border border-slate-800 rounded-xl p-3 text-white focus:outline-none focus:border-amber-500" />
+              </div>
               <div className="flex flex-col gap-1">
                 <label className="text-slate-300 font-semibold">Phone Number (Nigeria) *</label>
-                <input
-                  type="text"
-                  required
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="bg-slate-950 border border-slate-800 rounded-xl p-3 text-white font-mono focus:outline-none focus:border-amber-500"
-                />
+                <input type="text" required value={phone} onChange={(e) => setPhone(e.target.value)} className="bg-slate-950 border border-slate-800 rounded-xl p-3 text-white font-mono focus:outline-none focus:border-amber-500" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-slate-300 font-semibold">NIN *</label>
+                <input type="text" required value={nin} onChange={(e) => setNin(e.target.value)} placeholder="e.g. 12345678901" className="bg-slate-950 border border-slate-800 rounded-xl p-3 text-white font-mono focus:outline-none focus:border-amber-500" />
               </div>
             </div>
+            <button type="button" className="p-3 bg-slate-800 rounded-xl text-xs">Record Face Video (Liveness Check)</button>
 
             {/* Driver Operating Mode */}
             <div className="flex flex-col gap-1.5">

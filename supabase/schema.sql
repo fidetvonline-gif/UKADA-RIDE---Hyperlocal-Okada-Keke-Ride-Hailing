@@ -361,4 +361,20 @@ CREATE TRIGGER trg_trips_updated_at
   BEFORE UPDATE ON public.trips
   FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 
--- End of schema
+-- Add driver_applications table
+CREATE TABLE public.driver_applications (
+  id TEXT PRIMARY KEY,
+  "fullName" TEXT NOT NULL,
+  email TEXT NOT NULL,
+  phone TEXT NOT NULL,
+  nin TEXT NOT NULL,
+  "videoUrl" TEXT,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Enable RLS
+ALTER TABLE public.driver_applications ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Public read applications" ON public.driver_applications FOR SELECT USING (true);
+CREATE POLICY "Public insert applications" ON public.driver_applications FOR INSERT WITH CHECK (true);
+CREATE POLICY "Public update applications" ON public.driver_applications FOR UPDATE USING (true);

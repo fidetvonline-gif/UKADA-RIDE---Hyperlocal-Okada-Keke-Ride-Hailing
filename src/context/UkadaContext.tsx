@@ -30,8 +30,8 @@ interface UkadaContextType {
   isSupabaseConfigured: boolean;
 
   // Views
-  activeView: 'home' | 'passenger' | 'driver' | 'admin' | 'simulator';
-  setActiveView: (view: 'home' | 'passenger' | 'driver' | 'admin' | 'simulator') => void;
+  activeView: 'home' | 'passenger' | 'driver' | 'admin' | 'simulator' | 'driver-job';
+  setActiveView: (view: 'home' | 'passenger' | 'driver' | 'admin' | 'simulator' | 'driver-job') => void;
 
   // Active user / driver profiles
   passengerProfile: {
@@ -114,7 +114,7 @@ interface UkadaContextType {
 const UkadaContext = createContext<UkadaContextType | undefined>(undefined);
 
 export const UkadaProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [activeView, setActiveView] = useState<'home' | 'passenger' | 'driver' | 'admin' | 'simulator'>('home');
+  const [activeView, setActiveView] = useState<'home' | 'passenger' | 'driver' | 'admin' | 'simulator' | 'driver-job'>('home');
   
   const [passengerProfile, setPassengerProfile] = useState({
     id: 'pax-current',

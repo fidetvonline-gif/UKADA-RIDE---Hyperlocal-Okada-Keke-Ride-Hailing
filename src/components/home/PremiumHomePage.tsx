@@ -299,7 +299,7 @@ export const PremiumHomePage: React.FC = () => {
       {/* ================================================================= */}
       <section className="py-14 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
         <RealMobilityAndJobsSection
-          onApplyDriver={() => setShowDriverModal(true)}
+          onApplyDriver={() => setActiveView('driver-job')}
           onBookRide={() => setActiveView('passenger')}
         />
       </section>
