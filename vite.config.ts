@@ -12,6 +12,9 @@ export default defineConfig(() => {
       VitePWA({
         registerType: 'autoUpdate',
         includeAssets: ['favicon.ico', 'apple-touch-icon.png'],
+        workbox: {
+          maximumFileSizeToCacheInBytes: 6 * 1024 * 1024, // 6 MB for rich 3D WebGL assets
+        },
         manifest: {
           id: '/',
           name: 'UKADA Mobility',

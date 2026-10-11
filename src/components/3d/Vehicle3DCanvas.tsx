@@ -1,15 +1,8 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import gsap from 'gsap';
+import * as THREE from 'three';
 import { VehicleType } from '../../types';
-import {
-  ASSET_OKADA,
-  ASSET_KEKE,
-  REAL_OKADA_TURNTABLE,
-  REAL_KEKE_TURNTABLE,
-  VehicleTurntableAngle,
-} from '../../data/mockData';
+import { createOkada3DModel, createKeke3DModel } from './Vehicle3DModels';
 import { vehicleSoundEngine } from '../../utils/vehicleSoundEngine';
-import { resolveImageUrl } from '../../utils/assetResolver';
 import {
   RotateCw,
   Play,
@@ -26,6 +19,8 @@ import {
   ShieldCheck,
   Compass,
   Gauge,
+  Layers,
+  Box,
 } from 'lucide-react';
 
 interface Vehicle3DCanvasProps {
@@ -34,118 +29,94 @@ interface Vehicle3DCanvasProps {
   className?: string;
 }
 
-interface HotspotFeature {
+interface Hotspot3D {
   id: string;
   title: string;
   description: string;
   badge: string;
-  relevantAngles: number[];
-  xPercent: number;
-  yPercent: number;
+  position: [number, number, number]; // [x, y, z] in 3D world space
 }
 
-const OKADA_HOTSPOTS: HotspotFeature[] = [
+const OKADA_HOTSPOTS_3D: Hotspot3D[] = [
   {
     id: 'headlight',
     title: 'Round Glass Halogen Headlight',
     description: 'Chrome housing with high-beam penetration for night navigation.',
     badge: 'Lighting',
-    relevantAngles: [0, 45, 315],
-    xPercent: 64,
-    yPercent: 24,
+    position: [1.4, 1.15, 0],
   },
   {
     id: 'crash-guard',
     title: 'Tubular Steel Crash Guard with Reflective Tape',
     description: 'Heavy-duty tubular leg protector with mandatory red/white hazard safety stripes.',
     badge: 'Safety',
-    relevantAngles: [0, 45, 90, 315],
-    xPercent: 54,
-    yPercent: 54,
+    position: [0.35, 0.8, 0.45],
   },
   {
     id: 'fuel-tank',
     title: 'Bajaj Boxer BM 150cc Teardrop Tank',
     description: 'Durable red lacquer tank with embossed chrome Bajaj emblem.',
     badge: 'Powertrain',
-    relevantAngles: [45, 90, 270, 315],
-    xPercent: 50,
-    yPercent: 32,
-  },
-  {
-    id: 'luggage-rack',
-    title: 'Welded Steel Cargo Carrier Rack',
-    description: 'Heavy-duty rear luggage carrier with tie-down hook points.',
-    badge: 'Utility',
-    relevantAngles: [90, 135, 180, 225],
-    xPercent: 28,
-    yPercent: 28,
+    position: [0.28, 1.4, 0],
   },
   {
     id: 'engine-block',
     title: '150cc 4-Stroke Air-Cooled Engine',
     description: 'Cast cooling fins, carburettor, kick-starter & sealed chain guard.',
     badge: 'Engine',
-    relevantAngles: [45, 90, 225, 270],
-    xPercent: 49,
-    yPercent: 60,
+    position: [-0.05, 0.72, 0.25],
+  },
+  {
+    id: 'luggage-rack',
+    title: 'Welded Steel Cargo Carrier Rack',
+    description: 'Heavy-duty rear luggage carrier with tie-down hook points.',
+    badge: 'Utility',
+    position: [-1.22, 1.34, 0],
   },
   {
     id: 'plate',
     title: 'Verified Nigerian Commercial Registration',
     description: 'Official road-worthy number plate certified by state transport authorities.',
     badge: 'Verified',
-    relevantAngles: [0, 135, 180, 225],
-    xPercent: 28,
-    yPercent: 44,
+    position: [-1.62, 0.98, 0],
   },
 ];
 
-const KEKE_HOTSPOTS: HotspotFeature[] = [
+const KEKE_HOTSPOTS_3D: Hotspot3D[] = [
   {
     id: 'windshield',
     title: 'Laminated Windshield with Wiper Blade',
     description: 'Full-width safety glass with high-torque electric rain wiper.',
     badge: 'Safety',
-    relevantAngles: [0, 45, 315],
-    xPercent: 42,
-    yPercent: 26,
+    position: [0.72, 1.6, 0],
   },
   {
     id: 'transit-stripe',
     title: 'Akwa Ibom State Green Transit Livery',
     description: 'Mandatory commercial regulatory green stripe for authorized transit.',
     badge: 'Livery',
-    relevantAngles: [45, 90, 225, 270, 315],
-    xPercent: 56,
-    yPercent: 52,
+    position: [0.85, 0.92, 0.65],
   },
   {
     id: 'canopy',
     title: 'Heavy Waterproof Vinyl Roof Canopy',
     description: 'All-weather passenger roof with rolled side curtains for rain protection.',
     badge: 'Cabin',
-    relevantAngles: [0, 45, 90, 135, 180, 225, 270, 315],
-    xPercent: 58,
-    yPercent: 18,
+    position: [-0.35, 2.25, 0],
   },
   {
     id: 'spare-tire',
     title: 'Mounted Rear Spare Tyre & Custom Slogan',
     description: 'Commercial spare wheel emblazoned with "BAJAJ RE" & transport faith motto.',
     badge: 'Spare Tire',
-    relevantAngles: [135, 180, 225],
-    xPercent: 70,
-    yPercent: 50,
+    position: [-1.55, 1.0, 0],
   },
   {
     id: 'passenger-bench',
     title: '3-Passenger Cushioned Rear Cabin Bench',
     description: 'Tubular steel roll-cage protecting a spacious 3-seat passenger bench.',
     badge: 'Cabin',
-    relevantAngles: [45, 90, 270],
-    xPercent: 62,
-    yPercent: 46,
+    position: [-0.95, 0.9, 0],
   },
 ];
 
@@ -154,143 +125,303 @@ export const Vehicle3DCanvas: React.FC<Vehicle3DCanvasProps> = ({
   onVehicleChange,
   className = 'w-full h-[540px] lg:h-[620px]',
 }) => {
-  // Continuous 360-degree rotation angle (0 to 360)
-  const [rotationAngle, setRotationAngle] = useState<number>(45);
+  const mountRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Interaction & Playback state
   const [isAutoSpinning, setIsAutoSpinning] = useState<boolean>(true);
   const [spinSpeed, setSpinSpeed] = useState<number>(1);
+  const [currentYawDeg, setCurrentYawDeg] = useState<number>(45);
+  const [isAudioRunning, setIsAudioRunning] = useState<boolean>(false);
+  const [showHotspots, setShowHotspots] = useState<boolean>(true);
+  const [activeHotspot, setActiveHotspot] = useState<Hotspot3D | null>(null);
   const [zoomLevel, setZoomLevel] = useState<number>(1);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
-  const [showHotspots, setShowHotspots] = useState<boolean>(true);
-  const [activeHotspot, setActiveHotspot] = useState<HotspotFeature | null>(null);
-  const [isAudioRunning, setIsAudioRunning] = useState<boolean>(false);
+  const [screenHotspots, setScreenHotspots] = useState<
+    Array<{ hotspot: Hotspot3D; x: number; y: number; visible: boolean }>
+  >([]);
 
-  // Drag interaction
+  // Three.js References
+  const sceneRef = useRef<THREE.Scene | null>(null);
+  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
+  const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
+  const vehicleGroupRef = useRef<THREE.Group | null>(null);
+  const turntableFloorRef = useRef<THREE.Group | null>(null);
+  const animationFrameIdRef = useRef<number | null>(null);
+
+  // Wheel animation references
+  const wheelsRef = useRef<THREE.Group[]>([]);
+
+  // Camera Orbit / Drag variables
   const isDraggingRef = useRef<boolean>(false);
-  const dragStartXRef = useRef<number>(0);
-  const dragStartAngleRef = useRef<number>(0);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const animFrameRef = useRef<number | null>(null);
-  const lastTimeRef = useRef<number>(performance.now());
+  const previousPointerPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const orbitAngleRef = useRef<{ theta: number; phi: number; radius: number }>({
+    theta: Math.PI / 4, // 45 degrees
+    phi: Math.PI / 3, // ~60 degrees elevation
+    radius: 4.8,
+  });
 
-  const currentDataset = vehicleType === 'okada' ? REAL_OKADA_TURNTABLE : REAL_KEKE_TURNTABLE;
-  const currentHotspots = vehicleType === 'okada' ? OKADA_HOTSPOTS : KEKE_HOTSPOTS;
+  const hotspotsData = vehicleType === 'okada' ? OKADA_HOTSPOTS_3D : KEKE_HOTSPOTS_3D;
 
-  // Refs for direct DOM elements to ensure 60fps GSAP-driven rotation without lag
-  const platterRef = useRef<HTMLDivElement>(null);
-  const primaryShadowRef = useRef<HTMLDivElement>(null);
-  const secondaryShadowRef = useRef<HTMLDivElement>(null);
-  const tweenRef = useRef<gsap.core.Tween | null>(null);
-  const rotationProxyRef = useRef<{ angle: number }>({ angle: 45 });
-
-  // Preload all 8 high-resolution real photographic turntable angles
+  // Initialize Three.js Scene, Camera, Lights, Turntable, and 3D Vehicle Models
   useEffect(() => {
-    REAL_OKADA_TURNTABLE.forEach((item) => {
-      const img = new Image();
-      img.src = item.src;
-    });
-    REAL_KEKE_TURNTABLE.forEach((item) => {
-      const img = new Image();
-      img.src = item.src;
-    });
-  }, []);
+    const mount = mountRef.current;
+    if (!mount) return;
 
-  // Cleanup audio synthesizer on unmount
-  useEffect(() => {
+    const width = mount.clientWidth || 800;
+    const height = mount.clientHeight || 550;
+
+    // 1. Scene
+    const scene = new THREE.Scene();
+    sceneRef.current = scene;
+    scene.background = new THREE.Color(0x050811);
+    scene.fog = new THREE.FogExp2(0x050811, 0.04);
+
+    // 2. Camera
+    const camera = new THREE.PerspectiveCamera(38, width / height, 0.1, 100);
+    cameraRef.current = camera;
+
+    // 3. Renderer with antialiasing and shadow map
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      alpha: true,
+      powerPreference: 'high-performance',
+    });
+    rendererRef.current = renderer;
+    renderer.setSize(width, height);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.15;
+    mount.appendChild(renderer.domElement);
+
+    // 4. Studio Lighting System (Key light, Fill, Rim, Ambient)
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
+    scene.add(ambientLight);
+
+    // Warm Key Light
+    const keyLight = new THREE.DirectionalLight(0xfff5e6, 2.5);
+    keyLight.position.set(5, 7, 5);
+    keyLight.castShadow = true;
+    keyLight.shadow.mapSize.width = 1024;
+    keyLight.shadow.mapSize.height = 1024;
+    keyLight.shadow.camera.near = 1;
+    keyLight.shadow.camera.far = 20;
+    keyLight.shadow.camera.left = -4;
+    keyLight.shadow.camera.right = 4;
+    keyLight.shadow.camera.top = 4;
+    keyLight.shadow.camera.bottom = -4;
+    keyLight.shadow.bias = -0.0005;
+    scene.add(keyLight);
+
+    // Cool Blue/Cyan Fill Light for Automotive Definition
+    const fillLight = new THREE.DirectionalLight(0x93c5fd, 1.4);
+    fillLight.position.set(-6, 4, -4);
+    scene.add(fillLight);
+
+    // Amber Rim Accent Light
+    const rimLight = new THREE.DirectionalLight(0xf59e0b, 1.8);
+    rimLight.position.set(-4, 3, 6);
+    scene.add(rimLight);
+
+    // Ground Studio Floor & Turntable Platter
+    const floorGroup = new THREE.Group();
+    turntableFloorRef.current = floorGroup;
+    scene.add(floorGroup);
+
+    // Circular Turntable Platter
+    const platterRadius = 2.6;
+    const platterGeo = new THREE.CylinderGeometry(platterRadius, platterRadius, 0.08, 48);
+    const platterMat = new THREE.MeshStandardMaterial({
+      color: 0x0f172a,
+      metalness: 0.85,
+      roughness: 0.35,
+    });
+    const platterMesh = new THREE.Mesh(platterGeo, platterMat);
+    platterMesh.position.y = -0.04;
+    platterMesh.receiveShadow = true;
+    floorGroup.add(platterMesh);
+
+    // Platter Bezel Ring (Glowing Amber / Emerald rim)
+    const ringGeo = new THREE.TorusGeometry(platterRadius, 0.04, 16, 64);
+    const ringMat = new THREE.MeshStandardMaterial({
+      color: vehicleType === 'okada' ? 0xf59e0b : 0x10b981,
+      metalness: 0.9,
+      roughness: 0.1,
+      emissive: vehicleType === 'okada' ? 0xd97706 : 0x059669,
+      emissiveIntensity: 0.6,
+    });
+    const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+    ringMesh.rotation.x = Math.PI / 2;
+    ringMesh.position.y = 0.005;
+    floorGroup.add(ringMesh);
+
+    // Platter Grooves / Tech Spoke Markers
+    for (let s = 0; s < 12; s++) {
+      const spokeGeo = new THREE.BoxGeometry(0.02, 0.005, platterRadius * 1.8);
+      const spokeMat = new THREE.MeshBasicMaterial({
+        color: 0x334155,
+        transparent: true,
+        opacity: 0.4,
+      });
+      const spokeMesh = new THREE.Mesh(spokeGeo, spokeMat);
+      spokeMesh.rotation.y = (s / 12) * Math.PI;
+      spokeMesh.position.y = 0.002;
+      floorGroup.add(spokeMesh);
+    }
+
+    // Shadow Receiver Ground Plane
+    const shadowPlaneGeo = new THREE.PlaneGeometry(16, 16);
+    const shadowPlaneMat = new THREE.ShadowMaterial({ opacity: 0.7 });
+    const shadowPlane = new THREE.Mesh(shadowPlaneGeo, shadowPlaneMat);
+    shadowPlane.rotation.x = -Math.PI / 2;
+    shadowPlane.position.y = -0.042;
+    shadowPlane.receiveShadow = true;
+    scene.add(shadowPlane);
+
+    // Build the Actual 3D Vehicle Model Group
+    const vehicleGroup = new THREE.Group();
+    vehicleGroupRef.current = vehicleGroup;
+    scene.add(vehicleGroup);
+
+    // Populate model based on vehicleType
+    wheelsRef.current = [];
+    if (vehicleType === 'okada') {
+      const okadaData = createOkada3DModel();
+      vehicleGroup.add(okadaData.rootGroup);
+      if (okadaData.frontWheel && okadaData.rearWheel) {
+        wheelsRef.current.push(okadaData.frontWheel, okadaData.rearWheel);
+      }
+    } else {
+      const kekeData = createKeke3DModel();
+      vehicleGroup.add(kekeData.rootGroup);
+      if (kekeData.frontWheel && kekeData.rearLeftWheel && kekeData.rearRightWheel) {
+        wheelsRef.current.push(kekeData.frontWheel, kekeData.rearLeftWheel, kekeData.rearRightWheel);
+      }
+    }
+
+    // Render loop with continuous actual 3D turntable spin
+    let lastTime = performance.now();
+
+    const animate = (currentTime: number) => {
+      const deltaTime = (currentTime - lastTime) / 1000;
+      lastTime = currentTime;
+
+      // Update Auto-Spin on the 3D Vehicle Model
+      if (isAutoSpinning && !isDraggingRef.current && vehicleGroupRef.current) {
+        const rotationDelta = (Math.PI / 4) * spinSpeed * deltaTime; // ~8 RPM
+        orbitAngleRef.current.theta += rotationDelta;
+
+        // Keep theta normalized
+        if (orbitAngleRef.current.theta > Math.PI * 2) {
+          orbitAngleRef.current.theta -= Math.PI * 2;
+        }
+
+        // Spin wheels as the vehicle rotates!
+        wheelsRef.current.forEach((wheel) => {
+          wheel.rotation.z += rotationDelta * 2.5;
+        });
+      }
+
+      // Update Camera Position based on Spherical Coordinates
+      const currentRadius = orbitAngleRef.current.radius / zoomLevel;
+      const x =
+        currentRadius *
+        Math.sin(orbitAngleRef.current.phi) *
+        Math.sin(orbitAngleRef.current.theta);
+      const y = currentRadius * Math.cos(orbitAngleRef.current.phi);
+      const z =
+        currentRadius *
+        Math.sin(orbitAngleRef.current.phi) *
+        Math.cos(orbitAngleRef.current.theta);
+
+      camera.position.set(x, Math.max(0.3, y), z);
+      camera.lookAt(0, 0.75, 0); // Focus on vehicle center
+
+      // Calculate Normalized Heading in Degrees (0 - 360)
+      let headingDeg = (orbitAngleRef.current.theta * 180) / Math.PI;
+      headingDeg = ((headingDeg % 360) + 360) % 360;
+      setCurrentYawDeg(headingDeg);
+
+      // Render 3D Scene
+      renderer.render(scene, camera);
+
+      // Project 3D Hotspot world coordinates to 2D Screen space
+      if (showHotspots && mountRef.current) {
+        const rect = mountRef.current.getBoundingClientRect();
+        const projected = hotspotsData.map((spot) => {
+          const worldPos = new THREE.Vector3(...spot.position);
+          worldPos.project(camera);
+
+          // Check if behind camera
+          const isVisible = worldPos.z < 1;
+          const sx = ((worldPos.x + 1) * rect.width) / 2;
+          const sy = ((-worldPos.y + 1) * rect.height) / 2;
+
+          return {
+            hotspot: spot,
+            x: sx,
+            y: sy,
+            visible: isVisible,
+          };
+        });
+        setScreenHotspots(projected);
+      }
+
+      animationFrameIdRef.current = requestAnimationFrame(animate);
+    };
+
+    animationFrameIdRef.current = requestAnimationFrame(animate);
+
+    // Handle Window / Container Resize
+    const handleResize = () => {
+      if (!mountRef.current || !rendererRef.current || !cameraRef.current) return;
+      const newWidth = mountRef.current.clientWidth;
+      const newHeight = mountRef.current.clientHeight;
+      cameraRef.current.aspect = newWidth / newHeight;
+      cameraRef.current.updateProjectionMatrix();
+      rendererRef.current.setSize(newWidth, newHeight);
+    };
+
+    window.addEventListener('resize', handleResize);
+
     return () => {
+      window.removeEventListener('resize', handleResize);
+      if (animationFrameIdRef.current) {
+        cancelAnimationFrame(animationFrameIdRef.current);
+      }
+      renderer.dispose();
+      if (mount.contains(renderer.domElement)) {
+        mount.removeChild(renderer.domElement);
+      }
       vehicleSoundEngine.stopEngine();
     };
-  }, []);
+  }, [vehicleType, isAutoSpinning, spinSpeed, zoomLevel, showHotspots]);
 
-  // Helper to apply direct inline transforms to platter and shadows in sync
-  const applyTransforms = useCallback((deg: number) => {
-    const norm = ((deg % 360) + 360) % 360;
-    if (platterRef.current) {
-      platterRef.current.style.transform = `perspective(900px) rotateX(68deg) rotateZ(${norm}deg)`;
-    }
-    if (primaryShadowRef.current) {
-      primaryShadowRef.current.style.transform = `perspective(900px) rotateX(68deg) rotateZ(${norm}deg)`;
-    }
-    if (secondaryShadowRef.current) {
-      const sinOffset = 1 + Math.sin((norm * Math.PI) / 180) * 0.2;
-      secondaryShadowRef.current.style.transform = `perspective(900px) rotateX(68deg) rotateZ(${norm + 15}deg) scaleX(${sinOffset})`;
-    }
-  }, []);
-
-  // GSAP-driven continuous 360-degree rotation tween
-  useEffect(() => {
-    // Kill any existing tween
-    if (tweenRef.current) {
-      tweenRef.current.kill();
-      tweenRef.current = null;
-    }
-
-    if (!isAutoSpinning) {
-      applyTransforms(rotationAngle);
-      return;
-    }
-
-    // Set starting angle from current state
-    rotationProxyRef.current.angle = rotationAngle;
-
-    // 360 degrees rotation duration scaled by spinSpeed (default 13.8 seconds per full 360° turn)
-    const baseDuration = 13.8 / spinSpeed;
-
-    tweenRef.current = gsap.to(rotationProxyRef.current, {
-      angle: '+=360',
-      duration: baseDuration,
-      ease: 'none',
-      repeat: -1,
-      modifiers: {
-        angle: (val) => {
-          const numVal = parseFloat(val);
-          return (((numVal % 360) + 360) % 360);
-        },
-      },
-      onUpdate: () => {
-        if (isDraggingRef.current) return;
-        const currentAngle = ((rotationProxyRef.current.angle % 360) + 360) % 360;
-        setRotationAngle(currentAngle);
-        applyTransforms(currentAngle);
-      },
-    });
-
-    return () => {
-      if (tweenRef.current) {
-        tweenRef.current.kill();
-        tweenRef.current = null;
-      }
-    };
-  }, [isAutoSpinning, spinSpeed, applyTransforms]);
-
-  const normalizedAngle = ((rotationAngle % 360) + 360) % 360;
-
-  // Calculate the active photo index (0 to 7) corresponding to 8 angles spaced 45° apart
-  const sectorProgress = normalizedAngle / 45;
-  const primaryIndex = Math.floor(sectorProgress) % 8;
-  const secondaryIndex = (primaryIndex + 1) % 8;
-  const crossfadeWeight = sectorProgress - Math.floor(sectorProgress);
-
-  const activeAngleData = currentDataset[primaryIndex] || currentDataset[0];
-  const nextAngleData = currentDataset[secondaryIndex] || currentDataset[0];
-
-  // Drag-to-spin controls (seamlessly pauses GSAP and updates angle + base in real-time)
+  // Pointer Drag-to-Rotate 3D Controls
   const handlePointerDown = (e: React.PointerEvent) => {
     isDraggingRef.current = true;
-    dragStartXRef.current = e.clientX;
-    dragStartAngleRef.current = rotationAngle;
-    if (tweenRef.current) {
-      tweenRef.current.pause();
-    }
+    previousPointerPosRef.current = { x: e.clientX, y: e.clientY };
     (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
     if (!isDraggingRef.current) return;
-    const deltaX = e.clientX - dragStartXRef.current;
-    const newAngle = ((dragStartAngleRef.current + deltaX * 0.75) % 360 + 360) % 360;
-    setRotationAngle(newAngle);
-    rotationProxyRef.current.angle = newAngle;
-    applyTransforms(newAngle);
+
+    const deltaX = e.clientX - previousPointerPosRef.current.x;
+    const deltaY = e.clientY - previousPointerPosRef.current.y;
+
+    previousPointerPosRef.current = { x: e.clientX, y: e.clientY };
+
+    // Update Azimuth Theta
+    orbitAngleRef.current.theta -= deltaX * 0.009;
+
+    // Update Polar Elevation Phi (Clamped to avoid flipping over)
+    orbitAngleRef.current.phi = Math.max(
+      0.15,
+      Math.min(Math.PI / 2 - 0.04, orbitAngleRef.current.phi - deltaY * 0.007)
+    );
   };
 
   const handlePointerUp = (e: React.PointerEvent) => {
@@ -299,10 +430,6 @@ export const Vehicle3DCanvas: React.FC<Vehicle3DCanvasProps> = ({
       (e.target as HTMLElement).releasePointerCapture?.(e.pointerId);
     } catch {
       // ignore
-    }
-    if (isAutoSpinning && tweenRef.current) {
-      rotationProxyRef.current.angle = rotationAngle;
-      tweenRef.current.restart(true);
     }
   };
 
@@ -316,12 +443,7 @@ export const Vehicle3DCanvas: React.FC<Vehicle3DCanvasProps> = ({
   };
 
   const handleJumpToAngle = (targetDeg: number) => {
-    setRotationAngle(targetDeg);
-    rotationProxyRef.current.angle = targetDeg;
-    applyTransforms(targetDeg);
-    if (isAutoSpinning && tweenRef.current) {
-      tweenRef.current.restart(true);
-    }
+    orbitAngleRef.current.theta = (targetDeg * Math.PI) / 180;
   };
 
   return (
@@ -332,302 +454,91 @@ export const Vehicle3DCanvas: React.FC<Vehicle3DCanvasProps> = ({
       }`}
     >
       {/* ================================================================= */}
-      {/* 1. TOP HEADER: Status, Turntable Telemetry & Vehicle Switcher     */}
-      {/* ================================================================= */}
-      <div className="relative z-20 flex flex-wrap items-center justify-between gap-3 p-3 sm:p-4 bg-slate-900/95 backdrop-blur-md border-b border-slate-800/80">
-        <div className="flex items-center gap-3">
-          <div className="relative flex items-center justify-center">
-            <span className="w-3 h-3 rounded-full bg-emerald-400 animate-ping absolute opacity-75" />
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 relative" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="text-sm sm:text-base font-extrabold text-white tracking-wide">
-                {vehicleType === 'okada'
-                  ? 'Real Nigerian Okada (Bajaj Boxer BM 150cc)'
-                  : 'Real Nigerian Keke (Bajaj RE 200cc)'}
-              </h3>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-md font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                {isAutoSpinning ? 'Base Spinning 360°' : 'Manual Rotate'}
-              </span>
-            </div>
-            <p className="text-[11px] text-slate-400 hidden sm:block">
-              {vehicleType === 'okada'
-                ? 'Actual red & chrome commercial motorcycle rotating on motorized showroom platter'
-                : 'Actual yellow commercial tricycle rotating on motorized showroom platter'}
-            </p>
-          </div>
-        </div>
-
-        {/* Vehicle Switcher: Real Bike vs Real Keke */}
-        {onVehicleChange && (
-          <div className="flex items-center gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800">
-            <button
-              type="button"
-              onClick={() => onVehicleChange('okada')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                vehicleType === 'okada'
-                  ? 'bg-amber-500 text-slate-950 shadow-md font-extrabold'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <span>🏍 Real Okada Bike</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => onVehicleChange('keke')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                vehicleType === 'keke'
-                  ? 'bg-emerald-500 text-slate-950 shadow-md font-extrabold'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <span>🛺 Real Keke Tricycle</span>
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* ================================================================= */}
-      {/* 2. MAIN VIEWPORT: REAL VEHICLE + ACTIVELY SPINNING BASE & SHADOWS  */}
+      {/* 3D WEBGL VIEWPORT: ACTUAL PROCEDURAL 3D MESH WITH REAL-TIME SPIN */}
       {/* ================================================================= */}
       <div
+        ref={mountRef}
         className="relative flex-1 w-full overflow-hidden flex items-center justify-center cursor-grab active:cursor-grabbing bg-[#050811]"
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
       >
-        {/* Studio Lighting Radial Gradient Backdrop */}
-        <div
-          className="absolute inset-0 pointer-events-none transition-all duration-700"
-          style={{
-            background:
-              vehicleType === 'okada'
-                ? 'radial-gradient(ellipse at 50% 40%, rgba(245,158,11,0.14) 0%, rgba(15,23,42,0.65) 45%, rgba(5,8,17,1) 85%)'
-                : 'radial-gradient(ellipse at 50% 40%, rgba(16,185,129,0.14) 0%, rgba(15,23,42,0.65) 45%, rgba(5,8,17,1) 85%)',
-          }}
-        />
-
-        {/* =============================================================== */}
-        {/* THE MOTORIZED TURNTABLE BASE THAT VISIBLY SPINS 360°           */}
-        {/* =============================================================== */}
-        <div className="absolute bottom-4 sm:bottom-8 w-full flex items-center justify-center pointer-events-none">
-          {/* Outer Stationary Platform Ring (Chamfer Bezel) */}
-          <div className="relative w-[380px] sm:w-[560px] lg:w-[680px] h-[120px] sm:h-[160px] flex items-center justify-center">
-            {/* Stationary Metallic Floor Recess */}
-            <div
-              className="absolute inset-0 rounded-full border-2 border-slate-700/60 shadow-[0_20px_50px_rgba(0,0,0,0.9)]"
-              style={{
-                transform: 'perspective(900px) rotateX(68deg)',
-                background: 'linear-gradient(to bottom, #0f172a, #020617)',
-              }}
-            />
-
-            {/* ACTIVELY SPINNING TURNTABLE PLATTER (Turns with normalizedAngle) */}
-            <div
-              ref={platterRef}
-              className="absolute inset-2 sm:inset-3 rounded-full transition-transform duration-75 flex items-center justify-center overflow-hidden"
-              style={{
-                transform: `perspective(900px) rotateX(68deg) rotateZ(${normalizedAngle}deg)`,
-                background:
-                  vehicleType === 'okada'
-                    ? 'radial-gradient(ellipse at center, #1e293b 0%, #0f172a 55%, #090d16 100%)'
-                    : 'radial-gradient(ellipse at center, #132e22 0%, #0f172a 55%, #090d16 100%)',
-                boxShadow:
-                  vehicleType === 'okada'
-                    ? 'inset 0 0 40px rgba(245,158,11,0.25), 0 0 30px rgba(245,158,11,0.2)'
-                    : 'inset 0 0 40px rgba(16,185,129,0.25), 0 0 30px rgba(16,185,129,0.2)',
-                border:
-                  vehicleType === 'okada'
-                    ? '2px solid rgba(245,158,11,0.6)'
-                    : '2px solid rgba(16,185,129,0.6)',
-              }}
-            >
-              {/* Radial Grooves / Spokes that visibly spin around */}
-              <svg className="w-full h-full absolute inset-0 opacity-40" viewBox="0 0 200 200">
-                <circle cx="100" cy="100" r="94" fill="none" stroke="#f59e0b" strokeWidth="1" strokeDasharray="2,3" />
-                <circle cx="100" cy="100" r="75" fill="none" stroke="#94a3b8" strokeWidth="1" strokeDasharray="3,4" />
-                <circle cx="100" cy="100" r="45" fill="none" stroke="#64748b" strokeWidth="1" />
-                <circle cx="100" cy="100" r="16" fill="#0f172a" stroke="#f59e0b" strokeWidth="2" />
-                {/* 16 Radial Spokes radiating out */}
-                {Array.from({ length: 16 }).map((_, i) => (
-                  <line
-                    key={i}
-                    x1="100"
-                    y1="100"
-                    x2={100 + 94 * Math.cos((i * 22.5 * Math.PI) / 180)}
-                    y2={100 + 94 * Math.sin((i * 22.5 * Math.PI) / 180)}
-                    stroke={i % 2 === 0 ? '#f59e0b' : '#64748b'}
-                    strokeWidth={i % 4 === 0 ? '2' : '1'}
-                    strokeOpacity={i % 4 === 0 ? '0.7' : '0.3'}
-                  />
-                ))}
-              </svg>
-
-              {/* 4 Cardinal Angle Markers on the Platter */}
-              <div className="absolute top-2 font-mono text-[9px] text-amber-400 font-extrabold tracking-widest">
-                0° FRONT
-              </div>
-              <div className="absolute bottom-2 font-mono text-[9px] text-slate-400 font-extrabold tracking-widest">
-                180° REAR
-              </div>
-              <div className="absolute right-3 font-mono text-[9px] text-slate-400 font-extrabold">
-                90° R
-              </div>
-              <div className="absolute left-3 font-mono text-[9px] text-slate-400 font-extrabold">
-                270° L
-              </div>
-
-              {/* Glowing Turntable Drive Cursor */}
-              <div
-                className="absolute top-0 w-3 h-3 rounded-full bg-amber-400 shadow-[0_0_12px_#f59e0b] border border-white"
-                style={{ transform: 'translateY(-50%)' }}
-              />
-            </div>
-
-            {/* =========================================================== */}
-            {/* DYNAMIC ROTATING VEHICLE SHADOW (Actively spins with yaw)   */}
-            {/* =========================================================== */}
-            <div
-              ref={primaryShadowRef}
-              className="absolute pointer-events-none transition-transform duration-75"
-              style={{
-                transform: `perspective(900px) rotateX(68deg) rotateZ(${normalizedAngle}deg)`,
-                width: vehicleType === 'okada' ? '340px' : '400px',
-                height: vehicleType === 'okada' ? '90px' : '140px',
-                background:
-                  'radial-gradient(ellipse at center, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.65) 45%, transparent 75%)',
-                filter: 'blur(10px)',
-              }}
-            />
-
-            {/* Secondary directional cast shadow elongation */}
-            <div
-              ref={secondaryShadowRef}
-              className="absolute pointer-events-none transition-transform duration-75"
-              style={{
-                transform: `perspective(900px) rotateX(68deg) rotateZ(${normalizedAngle + 15}deg) scaleX(${
-                  1 + Math.sin((normalizedAngle * Math.PI) / 180) * 0.2
-                })`,
-                width: vehicleType === 'okada' ? '300px' : '360px',
-                height: vehicleType === 'okada' ? '70px' : '110px',
-                background:
-                  'radial-gradient(ellipse at center, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 50%, transparent 80%)',
-                filter: 'blur(14px)',
-              }}
-            />
-          </div>
-        </div>
-
-        {/* =============================================================== */}
-        {/* THE REAL VEHICLE PHOTOGRAPHIC LAYER                             */}
-        {/* =============================================================== */}
-        <div
-          className="relative z-10 max-w-full max-h-full flex items-center justify-center transition-transform duration-100 ease-out"
-          style={{
-            transform: `scale(${zoomLevel})`,
-          }}
-        >
-          {/* Primary Active Angle Real Photograph */}
-          <img
-            src={resolveImageUrl(activeAngleData.src)}
-            alt={`${vehicleType} ${activeAngleData.label}`}
-            className="max-h-[350px] sm:max-h-[440px] lg:max-h-[510px] w-auto object-contain select-none drop-shadow-[0_30px_45px_rgba(0,0,0,0.95)] transition-opacity duration-150"
-            style={{
-              opacity: 1 - crossfadeWeight * 0.35,
-            }}
-            draggable={false}
-          />
-
-          {/* Smooth Crossfade Secondary Angle Image during transition */}
-          {crossfadeWeight > 0.05 && (
-            <img
-              src={resolveImageUrl(nextAngleData.src)}
-              alt={`${vehicleType} ${nextAngleData.label}`}
-              className="max-h-[350px] sm:max-h-[440px] lg:max-h-[510px] w-auto object-contain select-none drop-shadow-[0_30px_45px_rgba(0,0,0,0.95)] absolute inset-0 m-auto transition-opacity duration-150"
-              style={{
-                opacity: crossfadeWeight * 0.95,
-              }}
-              draggable={false}
-            />
-          )}
-
-          {/* Interactive Inspection Hotspots on the Real Vehicle */}
-          {showHotspots &&
-            currentHotspots.map((spot) => {
-              const isRelevant = spot.relevantAngles.includes(activeAngleData.angle);
-              if (!isRelevant) return null;
-
-              const isSelected = activeHotspot?.id === spot.id;
-
-              return (
-                <div
-                  key={spot.id}
-                  className="absolute z-20 group"
-                  style={{
-                    left: `${spot.xPercent}%`,
-                    top: `${spot.yPercent}%`,
-                    transform: 'translate(-50%, -50%)',
-                  }}
-                >
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setActiveHotspot(isSelected ? null : spot);
-                    }}
-                    className={`w-6 h-6 rounded-full flex items-center justify-center shadow-xl transition-all ${
-                      isSelected
-                        ? 'bg-amber-400 text-slate-950 scale-125 ring-4 ring-amber-400/40'
-                        : 'bg-slate-950/90 text-amber-400 border border-amber-400/80 hover:scale-110 hover:bg-amber-500 hover:text-slate-950'
-                    }`}
-                    title={spot.title}
-                  >
-                    <Sparkles className="w-3.5 h-3.5 fill-current" />
-                  </button>
-
-                  {/* Tooltip Card */}
-                  <div
-                    className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3 rounded-xl bg-slate-950/95 backdrop-blur-md border border-slate-700/80 shadow-2xl pointer-events-none transition-all duration-200 z-30 ${
-                      isSelected
-                        ? 'opacity-100 scale-100'
-                        : 'opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-1 mb-1">
-                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30">
-                        {spot.badge}
-                      </span>
-                      <span className="text-[10px] text-slate-400 font-mono">
-                        {Math.round(normalizedAngle)}° Platter View
-                      </span>
-                    </div>
-                    <p className="text-xs font-bold text-white mb-0.5">{spot.title}</p>
-                    <p className="text-[11px] text-slate-300 leading-normal">{spot.description}</p>
-                  </div>
-                </div>
-              );
-            })}
-        </div>
-
-        {/* Top-Left Heading & Base RPM Telemetry */}
+        {/* Real 3D Badge Indicator */}
         <div className="absolute top-4 left-4 z-20 pointer-events-none bg-slate-900/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-800 text-[11px] text-slate-200 flex items-center gap-2.5 shadow-xl">
           <div className="flex items-center gap-1.5">
-            <Gauge className="w-3.5 h-3.5 text-amber-400 animate-spin" />
-            <span className="font-bold text-white">{activeAngleData.badge}</span>
+            <Box className="w-3.5 h-3.5 text-amber-400 animate-spin" />
+            <span className="font-bold text-white uppercase tracking-wider">
+              Actual 3D WebGL {vehicleType === 'okada' ? 'Motorcycle' : 'Tricycle'}
+            </span>
           </div>
           <span className="text-amber-400 font-mono text-[11px] font-bold border-l border-slate-700 pl-2">
-            {Math.round(normalizedAngle)}° HEADING
+            {Math.round(currentYawDeg)}° HEADING
           </span>
-          <span className="text-[10px] text-slate-400 font-mono border-l border-slate-700 pl-2 hidden sm:inline">
-            BASE SPIN: {isAutoSpinning ? '4.8 RPM' : 'IDLE'}
+          <span className="text-[10px] text-emerald-400 font-mono border-l border-slate-700 pl-2 hidden sm:inline">
+            REAL 3D ROTATION: {isAutoSpinning ? `${(spinSpeed * 4.8).toFixed(1)} RPM` : 'PAUSED'}
           </span>
         </div>
 
         {/* Top-Right Drag Hint */}
         <div className="absolute top-4 right-4 z-20 pointer-events-none hidden sm:flex items-center gap-1.5 bg-slate-900/80 backdrop-blur-md px-2.5 py-1 rounded-xl border border-slate-800 text-[10px] text-slate-400">
-          <span>Drag screen to spin platter</span>
+          <Compass className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+          <span>Click &amp; drag 360° anywhere to orbit camera</span>
         </div>
+
+        {/* 3D World Hotspot Pins overlay projected on real 3D coords */}
+        {showHotspots &&
+          screenHotspots.map(({ hotspot, x, y, visible }) => {
+            if (!visible) return null;
+            const isSelected = activeHotspot?.id === hotspot.id;
+
+            return (
+              <div
+                key={hotspot.id}
+                className="absolute z-20 group pointer-events-auto"
+                style={{
+                  left: `${x}px`,
+                  top: `${y}px`,
+                  transform: 'translate(-50%, -50%)',
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveHotspot(isSelected ? null : hotspot);
+                  }}
+                  className={`w-6 h-6 rounded-full flex items-center justify-center shadow-xl transition-all ${
+                    isSelected
+                      ? 'bg-amber-400 text-slate-950 scale-125 ring-4 ring-amber-400/40'
+                      : 'bg-slate-950/90 text-amber-400 border border-amber-400/80 hover:scale-110 hover:bg-amber-500 hover:text-slate-950'
+                  }`}
+                  title={hotspot.title}
+                >
+                  <Sparkles className="w-3.5 h-3.5 fill-current" />
+                </button>
+
+                {/* Tooltip Card */}
+                <div
+                  className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3 rounded-xl bg-slate-950/95 backdrop-blur-md border border-slate-700/80 shadow-2xl transition-all duration-200 z-30 ${
+                    isSelected
+                      ? 'opacity-100 scale-100'
+                      : 'opacity-0 scale-95 pointer-events-none group-hover:opacity-100 group-hover:scale-100 group-hover:pointer-events-auto'
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-1 mb-1">
+                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30">
+                      {hotspot.badge}
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-mono">
+                      {Math.round(currentYawDeg)}° 3D Angle
+                    </span>
+                  </div>
+                  <p className="text-xs font-bold text-white mb-0.5">{hotspot.title}</p>
+                  <p className="text-[11px] text-slate-300 leading-normal">{hotspot.description}</p>
+                </div>
+              </div>
+            );
+          })}
 
         {/* Bottom Floating Turntable Controls Bar */}
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex flex-wrap items-center gap-2 bg-slate-900/90 backdrop-blur-md px-3.5 py-2 rounded-2xl border border-slate-800/90 shadow-2xl max-w-[94%]">
@@ -640,7 +551,7 @@ export const Vehicle3DCanvas: React.FC<Vehicle3DCanvasProps> = ({
                 ? 'bg-emerald-500 text-slate-950 shadow font-extrabold'
                 : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
             }`}
-            title={isAutoSpinning ? 'Pause Base Spin' : 'Start Base Spin'}
+            title={isAutoSpinning ? 'Pause 3D Turntable Spin' : 'Start 3D Turntable Spin'}
           >
             {isAutoSpinning ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
             <span>{isAutoSpinning ? 'Spinning: ON' : 'Spinning: OFF'}</span>
@@ -694,7 +605,11 @@ export const Vehicle3DCanvas: React.FC<Vehicle3DCanvasProps> = ({
             }`}
             title="Toggle Web Audio engine simulation"
           >
-            {isAudioRunning ? <Volume2 className="w-3.5 h-3.5 text-emerald-400" /> : <VolumeX className="w-3.5 h-3.5" />}
+            {isAudioRunning ? (
+              <Volume2 className="w-3.5 h-3.5 text-emerald-400" />
+            ) : (
+              <VolumeX className="w-3.5 h-3.5" />
+            )}
             <span>{isAudioRunning ? 'Engine: ON' : 'Engine: Start'}</span>
           </button>
 
@@ -746,50 +661,54 @@ export const Vehicle3DCanvas: React.FC<Vehicle3DCanvasProps> = ({
               className="p-1 rounded text-slate-400 hover:text-white ml-1"
               title="Toggle Fullscreen"
             >
-              {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+              {isFullscreen ? (
+                <Minimize2 className="w-3.5 h-3.5" />
+              ) : (
+                <Maximize2 className="w-3.5 h-3.5" />
+              )}
             </button>
           </div>
         </div>
       </div>
 
       {/* ================================================================= */}
-      {/* 3. QUICK ANGLE PRESET SELECTOR STRIP                              */}
+      {/* QUICK ANGLE PRESET SELECTOR STRIP                                 */}
       {/* ================================================================= */}
       <div className="relative z-20 flex items-center justify-between gap-2 px-3 py-2 bg-slate-900/95 border-t border-slate-800/80 overflow-x-auto">
         <span className="text-[10px] font-mono text-slate-400 uppercase font-bold shrink-0 hidden sm:inline">
-          Turntable Angles:
+          3D Perspective Angles:
         </span>
         <div className="flex items-center gap-1.5 w-full justify-between sm:justify-start">
-          {currentDataset.map((item) => (
+          {[0, 45, 90, 135, 180, 225, 270, 315].map((angle) => (
             <button
-              key={item.angle}
+              key={angle}
               type="button"
-              onClick={() => handleJumpToAngle(item.angle)}
+              onClick={() => handleJumpToAngle(angle)}
               className={`px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold transition-all shrink-0 ${
-                Math.abs(normalizedAngle - item.angle) < 22.5 ||
-                (item.angle === 0 && normalizedAngle > 337.5)
+                Math.abs(currentYawDeg - angle) < 22.5 ||
+                (angle === 0 && currentYawDeg > 337.5)
                   ? 'bg-amber-500 text-slate-950 shadow font-extrabold'
                   : 'bg-slate-950/70 text-slate-400 hover:text-white border border-slate-800'
               }`}
             >
-              {item.angle}°
+              {angle}°
             </button>
           ))}
         </div>
       </div>
 
       {/* ================================================================= */}
-      {/* 4. BOTTOM SPECIFICATION BAR: Real Nigerian Commercial Specs       */}
+      {/* BOTTOM SPECIFICATION BAR: Real Nigerian Commercial Specs          */}
       {/* ================================================================= */}
       <div className="relative z-20 grid grid-cols-2 sm:grid-cols-4 gap-2 p-3 bg-slate-950 border-t border-slate-800/80 text-[11px]">
         <div className="flex items-center gap-2 px-2 py-1 rounded-lg bg-slate-900/70 border border-slate-800/60">
           <CheckCircle2 className="w-3.5 h-3.5 text-amber-400 shrink-0" />
           <div>
             <p className="font-bold text-white">
-              {vehicleType === 'okada' ? 'Real Bajaj BM 150cc' : 'Real Bajaj RE 200cc'}
+              {vehicleType === 'okada' ? '3D Bajaj BM 150cc' : '3D Bajaj RE 200cc'}
             </p>
             <p className="text-[10px] text-slate-400">
-              {vehicleType === 'okada' ? 'Actual Commercial Motorbike' : 'Actual Commercial Tricycle'}
+              {vehicleType === 'okada' ? 'Actual 3D Mesh Bike Model' : 'Actual 3D Mesh Keke Model'}
             </p>
           </div>
         </div>

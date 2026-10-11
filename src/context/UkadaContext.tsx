@@ -10,6 +10,7 @@ import {
   DriverStatus,
   DriverAvailability,
   InAppVoiceCall,
+  DriverApplication,
 } from '../types';
 import { callAudioEngine } from '../utils/callAudioEngine';
 import {
@@ -21,9 +22,43 @@ import {
   INITIAL_AUDIT_LOGS,
   INITIAL_LANDMARKS,
   ASSET_AVATAR_1,
+  ASSET_AVATAR_2,
 } from '../data/mockData';
 import { resolveImageUrl } from '../utils/assetResolver';
 import { supabaseService, isSupabaseConfigured } from '../lib/supabase';
+
+const INITIAL_DRIVER_APPLICATIONS: DriverApplication[] = [
+  {
+    id: 'app-9102',
+    fullName: 'Aniekpeno Sunday Akpan',
+    email: 'aniekpeno.akpan@gmail.com',
+    phone: '+234 802 341 9811',
+    nin: '48291048291',
+    vehicleType: 'okada',
+    driverMode: 'app',
+    vehicleReg: 'AKW-492-UK',
+    vehicleModel: 'Bajaj Boxer 150cc',
+    serviceZone: 'Ukana Central Zone',
+    livenessVerified: true,
+    status: 'pending',
+    createdAt: new Date(Date.now() - 3600000 * 4).toISOString(),
+  },
+  {
+    id: 'app-8431',
+    fullName: 'Nsikan Patrick Udosen',
+    email: 'nsikan.udosen@yahoo.com',
+    phone: '+234 813 552 1094',
+    nin: '61048295018',
+    vehicleType: 'keke',
+    driverMode: 'phone_only',
+    vehicleReg: 'AKW-881-IK',
+    vehicleModel: 'TVS King Deluxe 200cc',
+    serviceZone: 'Ikot Ekpene Urban Zone',
+    livenessVerified: true,
+    status: 'pending',
+    createdAt: new Date(Date.now() - 3600000 * 12).toISOString(),
+  },
+];
 
 interface UkadaContextType {
   // Supabase cloud persistence status
@@ -54,6 +89,7 @@ interface UkadaContextType {
   complaints: ComplaintTicket[];
   auditLogs: AuditLog[];
   landmarks: typeof INITIAL_LANDMARKS;
+  driverApplications: DriverApplication[];
 
   // Passenger actions
   requestRide: (
@@ -84,6 +120,9 @@ interface UkadaContextType {
   // Admin actions
   assignManualDispatch: (tripId: string, driverId: string, agreedFare: number, adminName: string) => void;
   registerDriver: (driverData: Omit<Driver, 'id' | 'rating' | 'totalTrips' | 'approvalDate'>) => Driver;
+  submitDriverApplication: (appData: Omit<DriverApplication, 'id' | 'status' | 'createdAt'>) => void;
+  approveDriverApplication: (applicationId: string) => void;
+  rejectDriverApplication: (applicationId: string, reason?: string) => void;
   updateDriverStatus: (driverId: string, status: DriverStatus, reason: string, adminName: string) => void;
   updateFareRule: (rule: FareRule) => void;
   updateComplaintStatus: (ticketId: string, status: ComplaintTicket['status'], resolutionNotes?: string) => void;
@@ -131,6 +170,7 @@ export const UkadaProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [serviceZones, setServiceZones] = useState<ServiceZone[]>(INITIAL_SERVICE_ZONES);
   const [complaints, setComplaints] = useState<ComplaintTicket[]>(INITIAL_COMPLAINTS);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>(INITIAL_AUDIT_LOGS);
+  const [driverApplications, setDriverApplications] = useState<DriverApplication[]>(INITIAL_DRIVER_APPLICATIONS);
 
   // Initialize data from Supabase Service Provider on mount
   useEffect(() => {
@@ -243,7 +283,7 @@ export const UkadaProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   // Add audit log
   const logAudit = useCallback((adminName: string, action: string, details: string) => {
     const newLog: AuditLog = {
-      id: `LOG-${Date.now().toString().slice(-4)}`,
+      id: `LOG-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       adminName,
       action,
       details,
@@ -278,7 +318,7 @@ export const UkadaProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       const estFare = Math.max(rule.minFare, Math.ceil(calculated / 50) * 50); // rounded to 50 Naira
       const estDuration = Math.max(3, Math.round(dist * (vehicleType === 'okada' ? 2.2 : 2.8)));
 
-      const newTripId = `UKD-TRIP-${Math.floor(1000 + Math.random() * 9000)}`;
+      const newTripId = `UKD-TRIP-${Date.now().toString().slice(-6)}-${Math.floor(100 + Math.random() * 900)}`;
 
       const newTrip: TripBooking = {
         id: newTripId,
@@ -339,7 +379,8 @@ export const UkadaProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
       setTrips((prev) =>
         prev.map((t) => {
-          if (t.id === tripId) {
+          // ATOMIC CHECK: Only accept if the trip is currently searching/manual_dispatch
+          if (t.id === tripId && (t.status === 'searching' || t.status === 'manual_dispatch')) {
             return {
               ...t,
               status: 'accepted',
@@ -352,10 +393,16 @@ export const UkadaProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         })
       );
 
-      // Mark driver as busy
-      setDrivers((prev) =>
-        prev.map((d) => (d.id === currentDriver.id ? { ...d, availability: 'busy' } : d))
-      );
+      // Mark driver as busy (only if successfully accepted)
+      setTrips((prev) => {
+          const trip = prev.find(t => t.id === tripId);
+          if (trip && trip.driverId === currentDriver.id) {
+              setDrivers((prevDrivers) =>
+                prevDrivers.map((d) => (d.id === currentDriver.id ? { ...d, availability: 'busy' } : d))
+              );
+          }
+          return prev;
+      });
     },
     [currentDriver]
   );
@@ -392,27 +439,32 @@ export const UkadaProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   // Complete trip
   const completeTrip = useCallback(
     (tripId: string, finalFare?: number) => {
+      if (!currentDriver) return;
+
+      let completedTrip: TripBooking | undefined;
+
       setTrips((prev) =>
         prev.map((t) => {
-          if (t.id === tripId) {
-            return {
+          // CHECK: Only the assigned driver can complete the trip
+          if (t.id === tripId && t.driverId === currentDriver.id) {
+            completedTrip = {
               ...t,
               status: 'completed',
               finalFare: finalFare || t.finalFare || t.estimatedFare,
               completedAt: new Date().toISOString(),
               paymentStatus: 'paid_cash',
             };
+            return completedTrip;
           }
           return t;
         })
       );
 
       // Free up driver
-      const trip = trips.find((t) => t.id === tripId);
-      if (trip?.driverId) {
+      if (completedTrip?.driverId) {
         setDrivers((prev) =>
           prev.map((d) =>
-            d.id === trip.driverId
+            d.id === completedTrip!.driverId
               ? {
                   ...d,
                   availability: 'online',
@@ -423,7 +475,7 @@ export const UkadaProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         );
       }
     },
-    [trips]
+    [currentDriver]
   );
 
   // Cancel trip
@@ -561,7 +613,7 @@ export const UkadaProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     (driverData: Omit<Driver, 'id' | 'rating' | 'totalTrips' | 'approvalDate'>): Driver => {
       const newDriver: Driver = {
         ...driverData,
-        id: `drv-${Date.now().toString().slice(-4)}`,
+        id: `drv-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
         rating: 5.0,
         totalTrips: 0,
         approvalDate: new Date().toISOString(),
@@ -577,6 +629,18 @@ export const UkadaProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     },
     [logAudit]
   );
+
+  const submitDriverApplication = useCallback((appData: Omit<DriverApplication, 'id' | 'status' | 'createdAt'>) => {
+    const newApp: DriverApplication = {
+        ...appData,
+        id: `app-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        status: 'pending',
+        createdAt: new Date().toISOString()
+    };
+    setDriverApplications(prev => [newApp, ...prev]);
+    console.log("Simulating SMS/Email to: ", appData.email, appData.phone);
+    console.log("Notifying Company...");
+  }, []);
 
   // Update driver approval status
   const updateDriverStatus = useCallback(
@@ -606,6 +670,39 @@ export const UkadaProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     },
     [logAudit]
   );
+
+  const approveDriverApplication = useCallback((applicationId: string) => {
+    const app = driverApplications.find(a => a.id === applicationId);
+    if (!app) return;
+    const isOkada = (app.vehicleType || 'okada') === 'okada';
+    registerDriver({
+        fullName: app.fullName,
+        phone: app.phone,
+        photoUrl: app.driverMode === 'phone_only' ? ASSET_AVATAR_2 : ASSET_AVATAR_1,
+        driverCode: `UKD-${isOkada ? 'OK' : 'KK'}-${Math.floor(100+Math.random()*900)}`,
+        driverMode: app.driverMode || 'app',
+        vehicleType: app.vehicleType || 'okada',
+        vehicleReg: app.vehicleReg || (isOkada ? 'AKW-512-UK' : 'AKW-904-IK'),
+        vehicleColor: isOkada ? 'Black & Red' : 'Commercial Yellow',
+        vehicleModel: app.vehicleModel || (isOkada ? 'Bajaj Boxer 150cc' : 'TVS King Deluxe 200cc'),
+        status: 'approved',
+        availability: 'online',
+        serviceZones: [app.serviceZone || 'Ukana Central Zone'],
+        currentLat: 5.286,
+        currentLng: 7.679,
+        lastLocationUpdate: new Date().toISOString(),
+        approvedBy: 'Admin Michael Essien'
+    });
+    setDriverApplications(prev => prev.map(a => a.id === applicationId ? {...a, status: 'approved'} : a));
+    logAudit('Admin', 'Driver Application Approved', `Approved driver ${app.fullName} (NIN: ${app.nin}, Vehicle: ${app.vehicleType || 'okada'})`);
+  }, [driverApplications, registerDriver, logAudit]);
+
+  const rejectDriverApplication = useCallback((applicationId: string, reason?: string) => {
+    const app = driverApplications.find(a => a.id === applicationId);
+    if (!app) return;
+    setDriverApplications(prev => prev.map(a => a.id === applicationId ? { ...a, status: 'rejected' } : a));
+    logAudit('Admin', 'Driver Application Rejected', `Rejected driver application ${app.fullName} (NIN: ${app.nin}). Reason: ${reason || 'Failed document verification'}`);
+  }, [driverApplications, logAudit]);
 
   // Update complaint ticket
   const updateComplaintStatus = useCallback(
@@ -898,6 +995,7 @@ export const UkadaProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         complaints,
         auditLogs,
         landmarks: INITIAL_LANDMARKS,
+        driverApplications,
         requestRide,
         cancelTrip,
         rateTrip,
@@ -911,6 +1009,9 @@ export const UkadaProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         updateDriverGps,
         assignManualDispatch,
         registerDriver,
+        submitDriverApplication,
+        approveDriverApplication,
+        rejectDriverApplication,
         updateDriverStatus,
         updateFareRule,
         updateComplaintStatus,

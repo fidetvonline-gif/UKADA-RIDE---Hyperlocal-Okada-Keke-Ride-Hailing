@@ -591,9 +591,9 @@ export const PassengerExperience: React.FC = () => {
               </div>
             ) : (
               <div className="flex flex-col gap-3">
-                {passengerTrips.map((trip) => (
+                {passengerTrips.map((trip, idx) => (
                   <div
-                    key={trip.id}
+                    key={`${trip.id}-${idx}`}
                     className="bg-slate-950 border border-slate-800/80 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 hover:border-slate-700 transition-colors"
                   >
                     <div className="flex items-start gap-3">

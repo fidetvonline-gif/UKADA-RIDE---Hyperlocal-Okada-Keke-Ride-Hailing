@@ -75,13 +75,37 @@ export const DriverExperience: React.FC = () => {
     return () => clearInterval(interval);
   }, [incomingTripForDriver?.id, rejectRide]);
 
-  // Driver trips for earnings calculation
+// Driver trips for earnings calculation
   const driverTrips = trips.filter(
     (t) => t.driverId === currentDriver?.id && t.status === 'completed'
   );
 
+  // Helper for date filtering
+  const isToday = (date?: string) => {
+    if (!date) return false;
+    return new Date(date).toDateString() === new Date().toDateString();
+  };
+  const isThisWeek = (date?: string) => {
+    if (!date) return false;
+    const d = new Date(date);
+    const now = new Date();
+    const first = now.getDate() - now.getDay();
+    const sunday = new Date(now.setDate(first));
+    return d >= sunday;
+  };
+  const isThisMonth = (date?: string) => {
+    if (!date) return false;
+    const d = new Date(date);
+    const now = new Date();
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  };
+
+  const dailyEarnings = driverTrips.filter(t => isToday(t.completedAt)).reduce((acc, t) => acc + (t.finalFare || t.estimatedFare), 0);
+  const weeklyEarnings = driverTrips.filter(t => isThisWeek(t.completedAt)).reduce((acc, t) => acc + (t.finalFare || t.estimatedFare), 0);
+  const monthlyEarnings = driverTrips.filter(t => isThisMonth(t.completedAt)).reduce((acc, t) => acc + (t.finalFare || t.estimatedFare), 0);
+  
   const totalGrossCash = driverTrips.reduce((acc, t) => acc + (t.finalFare || t.estimatedFare), 0);
-  const platformCommission = Math.round(totalGrossCash * 0.1); // 10% platform fee
+  const platformCommission = Math.round(totalGrossCash * 0.1); 
   const netEarnings = totalGrossCash - platformCommission;
 
   if (!currentDriver) {
@@ -403,68 +427,190 @@ export const DriverExperience: React.FC = () => {
 
         {/* TAB 2: DRIVER EARNINGS LEDGER */}
         {activeDriverTab === 'earnings' && (
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col gap-5">
-            <div className="border-b border-slate-800 pb-3">
-              <h3 className="text-base font-bold text-white">Driver Daily Earnings Ledger</h3>
-              <p className="text-xs text-slate-400">
-                Transparent breakdown of cash fares collected and 10% platform commission.
-              </p>
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col gap-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <DollarSign className="w-5 h-5 text-amber-400" />
+                  Driver Earnings &amp; Financial Ledger
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Real-time aggregation of completed fares, 90% take-home share, and daily bank remittances.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-mono px-3 py-1 bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 rounded-lg font-bold">
+                  90% Driver Retained &middot; 10% Fee
+                </span>
+              </div>
             </div>
 
-            {/* Summary KPI Strip */}
+            {/* Income Aggregation Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
-                <span className="text-[11px] text-slate-400 font-semibold uppercase">Gross Cash Collected</span>
-                <p className="text-xl font-bold font-mono text-white tabular-nums mt-1">
-                  ₦{totalGrossCash.toLocaleString()}
+              <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col justify-between">
+                <span className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">Today's Income</span>
+                <p className="text-2xl font-bold font-mono text-amber-400 mt-1 tabular-nums">
+                  ₦{dailyEarnings.toLocaleString()}
                 </p>
-                <span className="text-[10px] text-slate-400">{driverTrips.length} completed trips</span>
+                <div className="text-[10px] text-slate-500 mt-1 font-mono">
+                  {driverTrips.filter(t => isToday(t.completedAt)).length} rides completed today
+                </div>
               </div>
 
-              <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
-                <span className="text-[11px] text-amber-400 font-semibold uppercase">Platform Fee (10%)</span>
-                <p className="text-xl font-bold font-mono text-amber-400 tabular-nums mt-1">
-                  ₦{platformCommission.toLocaleString()}
+              <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col justify-between">
+                <span className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">Weekly Income</span>
+                <p className="text-2xl font-bold font-mono text-emerald-400 mt-1 tabular-nums">
+                  ₦{weeklyEarnings.toLocaleString()}
                 </p>
-                <span className="text-[10px] text-slate-400">Weekly settlement</span>
+                <div className="text-[10px] text-slate-500 mt-1 font-mono">
+                  {driverTrips.filter(t => isThisWeek(t.completedAt)).length} rides completed this week
+                </div>
               </div>
 
-              <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
-                <span className="text-[11px] text-emerald-400 font-semibold uppercase">Net Driver Take-Home</span>
-                <p className="text-xl font-bold font-mono text-emerald-400 tabular-nums mt-1">
-                  ₦{netEarnings.toLocaleString()}
+              <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col justify-between">
+                <span className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">Monthly Income</span>
+                <p className="text-2xl font-bold font-mono text-white mt-1 tabular-nums">
+                  ₦{monthlyEarnings.toLocaleString()}
                 </p>
-                <span className="text-[10px] text-emerald-400">90% retained</span>
+                <div className="text-[10px] text-slate-500 mt-1 font-mono">
+                  {driverTrips.filter(t => isThisMonth(t.completedAt)).length} rides completed this month
+                </div>
               </div>
             </div>
 
-            {/* Completed trips list */}
-            <div className="flex flex-col gap-2">
-              <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wide">Trips Completed Today</h4>
+            {/* Overall Revenue Breakdown Banner */}
+            <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 text-xs">
+                <div>
+                  <span className="text-slate-400">Total Fares Handled:</span>
+                  <p className="font-bold font-mono text-white text-base">₦{totalGrossCash.toLocaleString()}</p>
+                </div>
+                <div className="hidden sm:block text-slate-700">&bull;</div>
+                <div>
+                  <span className="text-slate-400">Platform Service Fee (10%):</span>
+                  <p className="font-bold font-mono text-rose-400 text-base">-₦{platformCommission.toLocaleString()}</p>
+                </div>
+                <div className="hidden sm:block text-slate-700">&bull;</div>
+                <div>
+                  <span className="text-emerald-400 font-semibold">Net Driver Remittance (90%):</span>
+                  <p className="font-bold font-mono text-emerald-400 text-base">₦{netEarnings.toLocaleString()}</p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => alert('Instant Bank Transfer requested! ₦' + (dailyEarnings || 2500) + ' will be remitted to your verified Nigerian bank account within 10 minutes.')}
+                className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl shadow-md transition-transform active:scale-[0.98] whitespace-nowrap shrink-0"
+              >
+                Request Instant Bank Remittance
+              </button>
+            </div>
+
+            {/* Official Automated Payout History Ledger */}
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-between border-t border-slate-800 pt-4">
+                <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wide">
+                  Official Bank Payout History (Remittance Ledger)
+                </h4>
+                <span className="text-[11px] text-slate-500 font-mono">Automated Daily Settlements</span>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                {[
+                  {
+                    ref: 'UKD-PAY-9812',
+                    date: 'Yesterday, 8:45 PM',
+                    bank: 'OPay Bank &middot; 802****981',
+                    gross: '₦5,500',
+                    net: '₦4,950',
+                    status: 'Settled to Account',
+                  },
+                  {
+                    ref: 'UKD-PAY-9418',
+                    date: '2 days ago, 9:15 PM',
+                    bank: 'First Bank &middot; 309****214',
+                    gross: '₦7,200',
+                    net: '₦6,480',
+                    status: 'Settled to Account',
+                  },
+                  {
+                    ref: 'UKD-PAY-9105',
+                    date: '3 days ago, 8:30 PM',
+                    bank: 'OPay Bank &middot; 802****981',
+                    gross: '₦6,000',
+                    net: '₦5,400',
+                    status: 'Settled to Account',
+                  },
+                ].map((payout) => (
+                  <div
+                    key={payout.ref}
+                    className="p-3 bg-slate-950 rounded-xl border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 font-mono font-bold text-xs">
+                        ₦
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-bold text-white">{payout.ref}</span>
+                          <span className="text-[10px] font-bold px-1.5 py-0.2 bg-emerald-950 text-emerald-300 rounded border border-emerald-800">
+                            {payout.status}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-slate-400 mt-0.5">
+                          {payout.bank} &middot; {payout.date}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="text-right flex items-center sm:flex-col justify-between sm:justify-center">
+                      <span className="font-mono font-bold text-emerald-400 text-sm">{payout.net}</span>
+                      <span className="text-[10px] text-slate-500 font-mono">Gross {payout.gross} (less 10%)</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Individual Completed Rides Breakdown */}
+            <div className="flex flex-col gap-3">
+              <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wide border-t border-slate-800 pt-4">
+                Completed Ride Activity ({driverTrips.length} Rides)
+              </h4>
               {driverTrips.length === 0 ? (
-                <div className="py-8 text-center text-xs text-slate-400">
-                  No completed trips yet today. Go online to accept rides!
+                <div className="py-6 text-center text-xs text-slate-500 bg-slate-950 rounded-xl border border-slate-800/60">
+                  No completed rides recorded yet today. Complete your next trip to see it listed here!
                 </div>
               ) : (
                 <div className="flex flex-col gap-2">
-                  {driverTrips.map((trip) => (
-                    <div
-                      key={trip.id}
-                      className="p-3 bg-slate-950 rounded-xl border border-slate-800/80 flex items-center justify-between text-xs"
-                    >
-                      <div>
-                        <span className="font-semibold text-white">
-                          {trip.pickupName.split('(')[0]} &rarr; {trip.destinationName.split('(')[0]}
-                        </span>
-                        <p className="text-[11px] text-slate-400 mt-0.5">
-                          {new Date(trip.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} &middot; {trip.distanceKm} km &middot; Cash paid
-                        </p>
+                  {driverTrips.map((trip, idx) => {
+                    const fare = trip.finalFare || trip.estimatedFare;
+                    const net = Math.round(fare * 0.9);
+                    return (
+                      <div
+                        key={`${trip.id}-${idx}`}
+                        className="p-3 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-between text-xs"
+                      >
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-semibold text-white">{trip.pickupName} &rarr; {trip.destinationName}</span>
+                            <span className="text-[10px] font-mono px-1.5 py-0.2 bg-slate-900 text-slate-400 rounded">
+                              {trip.vehicleType.toUpperCase()}
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-slate-400 mt-0.5 font-mono">
+                            {trip.completedAt ? new Date(trip.completedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recent'} &middot; Passenger: {trip.passengerName}
+                          </p>
+                        </div>
+
+                        <div className="text-right">
+                          <span className="font-mono font-bold text-emerald-400">₦{net}</span>
+                          <p className="text-[10px] text-slate-500 font-mono">Gross ₦{fare}</p>
+                        </div>
                       </div>
-                      <span className="font-mono font-bold text-amber-400 tabular-nums">
-                        ₦{trip.finalFare || trip.estimatedFare}
-                      </span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

@@ -122,6 +122,24 @@ export interface AuditLog {
   timestamp: string;
 }
 
+export interface DriverApplication {
+  id: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  nin: string;
+  vehicleType?: VehicleType;
+  driverMode?: DriverMode;
+  vehicleReg?: string;
+  vehicleModel?: string;
+  serviceZone?: string;
+  livenessVerified?: boolean;
+  videoUrl?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  rejectionReason?: string;
+  createdAt: string;
+}
+
 export type CallStatus = 'idle' | 'outgoing_ringing' | 'incoming_ringing' | 'connected' | 'ended';
 
 export interface InAppVoiceCall {

@@ -8,18 +8,12 @@ import {
 import { resolveImageUrl } from '../../utils/assetResolver';
 import {
   Briefcase,
-  Coins,
   CheckCircle2,
   ShieldCheck,
-  TrendingUp,
   ArrowRight,
-  PhoneCall,
-  Clock,
-  Navigation,
-  UserCheck,
-  Fuel,
-  Sparkles,
   Award,
+  Users,
+  Coins,
 } from 'lucide-react';
 
 interface RealMobilityAndJobsSectionProps {
@@ -34,89 +28,14 @@ export const RealMobilityAndJobsSection: React.FC<RealMobilityAndJobsSectionProp
   // Mobility showcase active tab
   const [activeMobilityTab, setActiveMobilityTab] = useState<'okada' | 'keke' | 'calling'>('okada');
 
-  // Interactive Earnings Calculator state
-  const [calcVehicle, setCalcVehicle] = useState<'okada' | 'keke'>('okada');
-  const [tripsPerDay, setTripsPerDay] = useState<number>(14);
-
-  // Realistic Nigerian fares calculation
-  // Okada avg trip: ₦350. Keke avg trip: ₦600 (3 pax @ ₦200 each). Driver retains 90%
-  const avgTripGross = calcVehicle === 'okada' ? 350 : 600;
-  const driverRate = 0.90;
-  const dailyEarnings = Math.round(tripsPerDay * avgTripGross * driverRate);
-  const weeklyEarnings = dailyEarnings * 6; // 6 working days
-  const monthlyEarnings = weeklyEarnings * 4;
-
-  const jobRoles = [
-    {
-      title: 'Okada Express Rider',
-      vehicle: 'Bajaj Boxer 150cc',
-      weeklyPay: '₦75,000 – ₦120,000',
-      badge: 'High Demand',
-      badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/40',
-      perks: [
-        'Keep 90% of every ride fare',
-        'Free DOT-certified passenger helmet & safety vest',
-        'Flexible hours across city & market junctions',
-        'Fuel partner discounts on major transit routes',
-      ],
-      payoutFrequency: 'Daily Instant Bank Transfer',
-    },
-    {
-      title: 'Keke Route Pilot',
-      vehicle: 'Commercial Yellow Tricycle 200cc',
-      weeklyPay: '₦95,000 – ₦160,000',
-      badge: 'Top Volume',
-      badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
-      perks: [
-        'High passenger volume on morning & market routes',
-        'Carry 3 passengers per trip for triple ticket revenue',
-        'Akwa Ibom transit union compliance badge included',
-        'Zero predatory vehicle lease contracts',
-      ],
-      payoutFrequency: 'Daily Instant Bank Transfer',
-    },
-    {
-      title: 'City Express Courier',
-      vehicle: 'Motorbike Parcel Dispatch',
-      weeklyPay: '₦60,000 – ₦100,000',
-      badge: 'Package Delivery',
-      badgeColor: 'bg-blue-500/20 text-blue-300 border-blue-500/40',
-      perks: [
-        'Deliver market goods, pharmacy parcels & documents',
-        'Guaranteed daytime inter-junction courier bookings',
-        'Lower wear-and-tear with scheduled parcel pickups',
-        'Dedicated dispatch center routing support',
-      ],
-      payoutFrequency: 'Daily Instant Bank Transfer',
-    },
-    {
-      title: 'Fleet Vehicle Partner',
-      vehicle: 'Motorbike / Keke Fleet Asset',
-      weeklyPay: '₦35,000 – ₦55,000 / unit',
-      badge: 'Passive Income',
-      badgeColor: 'bg-purple-500/20 text-purple-300 border-purple-500/40',
-      perks: [
-        'Place your vehicle under verified UKADA management',
-        'Live GPS fleet tracking in your owner portal',
-        'Vetted, background-checked professional drivers',
-        'Guaranteed weekly automated bank remittance',
-      ],
-      payoutFrequency: 'Weekly Direct Remittance',
-    },
-  ];
-
   return (
     <div className="w-full flex flex-col gap-14">
       {/* ================================================================= */}
-      {/* 1. NATURAL NIGERIAN STREET MOBILITY SHOWCASE (NO BLOAT / NO SCHOOL)*/}
+      {/* 1. NATURAL NIGERIAN STREET MOBILITY SHOWCASE                      */}
       {/* ================================================================= */}
       <div className="flex flex-col gap-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4">
           <div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full text-xs font-bold text-amber-300 mb-2">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Real Nigerian Street Transit</span>
-            </div>
             <h2 className="text-2xl sm:text-3xl font-extrabold text-white">
               Everyday Urban &amp; Commercial Road Mobility
             </h2>
@@ -291,14 +210,81 @@ export const RealMobilityAndJobsSection: React.FC<RealMobilityAndJobsSectionProp
           </div>
         </div>
       </div>
-      
-      {/* Simple CTA to Driver Job Page instead of full section */}
-      <div className="p-8 rounded-3xl bg-slate-900 border border-slate-800 flex items-center justify-between">
-          <div>
-            <h3 className="text-xl font-bold text-white">Drive for UKADA</h3>
-            <p className="text-sm text-slate-400">Earn a stable income as a driver. Apply today.</p>
+
+      {/* ================================================================= */}
+      {/* 2. APPLY FOR DRIVER'S JOB TODAY SECTION (WITH RESTORED PICTURE)   */}
+      {/* ================================================================= */}
+      <div className="relative rounded-3xl bg-gradient-to-r from-slate-900 via-slate-900 to-slate-950 border border-slate-800 overflow-hidden shadow-2xl">
+        <div className="grid grid-cols-1 lg:grid-cols-12 items-center">
+          {/* Left Column: Image Restored */}
+          <div className="lg:col-span-5 relative h-72 lg:h-full min-h-[300px]">
+            <img
+              src={resolveImageUrl(ASSET_RIDERS_JOBS_TEAM)}
+              alt="UKADA verified commercial drivers team in Ukana Akwa Ibom"
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t lg:bg-gradient-to-r from-slate-950/90 lg:from-transparent via-slate-950/40 to-slate-950 lg:to-slate-900" />
+            <div className="absolute top-4 left-4 bg-amber-500 text-slate-950 text-xs font-black uppercase px-3 py-1 rounded-full shadow-lg flex items-center gap-1.5">
+              <Users className="w-3.5 h-3.5" />
+              <span>Official Fleet Team</span>
+            </div>
           </div>
-          <button onClick={onApplyDriver} className="px-6 py-3 bg-emerald-500 text-slate-950 font-bold rounded-xl">Apply for Driver Job</button>
+
+          {/* Right Column: Information & Clear CTA to Dedicated Job Page */}
+          <div className="lg:col-span-7 p-6 sm:p-10 flex flex-col gap-5">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-mono font-bold text-amber-400 uppercase tracking-wider bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20">
+                Driver Recruitment Portal
+              </span>
+              <span className="text-xs text-slate-400">Akwa Ibom &middot; Commercial Corridors</span>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <h3 className="text-2xl sm:text-3xl font-extrabold text-white leading-tight">
+                Apply for Driver's Job Today
+              </h3>
+              <p className="text-sm text-slate-300 leading-relaxed">
+                Take control of your daily earnings with Nigeria's fairest mobility platform. Learn all about driver rates, transparent commissions, daily instant payouts, and vehicle onboarding requirements.
+              </p>
+            </div>
+
+            {/* Quick Benefits Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-1">
+              <div className="p-3 bg-slate-950/70 border border-slate-800 rounded-xl">
+                <span className="text-xs font-semibold text-slate-400">Driver Take-Home</span>
+                <p className="text-base font-bold text-amber-400 font-mono mt-0.5">90% of Fare</p>
+                <p className="text-[10px] text-slate-500">Only 10% platform fee</p>
+              </div>
+
+              <div className="p-3 bg-slate-950/70 border border-slate-800 rounded-xl">
+                <span className="text-xs font-semibold text-slate-400">Payout Speed</span>
+                <p className="text-base font-bold text-emerald-400 font-mono mt-0.5">Daily Instant</p>
+                <p className="text-[10px] text-slate-500">Direct to your bank</p>
+              </div>
+
+              <div className="col-span-2 sm:col-span-1 p-3 bg-slate-950/70 border border-slate-800 rounded-xl">
+                <span className="text-xs font-semibold text-slate-400">Device Accepted</span>
+                <p className="text-base font-bold text-blue-400 font-mono mt-0.5">App or Basic</p>
+                <p className="text-[10px] text-slate-500">Feature phone supported</p>
+              </div>
+            </div>
+
+            {/* Prominent Action Button */}
+            <div className="pt-2 flex flex-wrap items-center gap-4">
+              <button
+                type="button"
+                onClick={onApplyDriver}
+                className="px-6 py-3.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-sm rounded-xl shadow-lg shadow-amber-500/20 active:scale-[0.98] transition-all flex items-center gap-2"
+              >
+                <span>View Job Details &amp; Apply Now</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+              <span className="text-xs text-slate-400">
+                Takes ~3 minutes &middot; NIN document required
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

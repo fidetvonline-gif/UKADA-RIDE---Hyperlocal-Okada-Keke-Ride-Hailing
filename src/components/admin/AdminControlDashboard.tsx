@@ -38,8 +38,11 @@ export const AdminControlDashboard: React.FC = () => {
     complaints,
     auditLogs,
     landmarks,
+    driverApplications,
     assignManualDispatch,
     registerDriver,
+    approveDriverApplication,
+    rejectDriverApplication,
     updateDriverStatus,
     updateFareRule,
     updateComplaintStatus,
@@ -47,13 +50,14 @@ export const AdminControlDashboard: React.FC = () => {
   } = useUkada();
 
   const [activeAdminTab, setActiveAdminTab] = useState<
-    'overview' | 'manual_queue' | 'fleet' | 'live_map' | 'fares' | 'complaints' | 'audit'
+    'overview' | 'manual_queue' | 'fleet' | 'live_map' | 'fares' | 'complaints' | 'audit' | 'verification'
   >('overview');
 
   // Filter states
   const [fleetFilterMode, setFleetFilterMode] = useState<string>('all');
   const [fleetFilterVehicle, setFleetFilterVehicle] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [verificationStatusFilter, setVerificationStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
 
   // Modals
   const [showAddDriverModal, setShowAddDriverModal] = useState<boolean>(false);
@@ -279,6 +283,15 @@ export const AdminControlDashboard: React.FC = () => {
             <FileText className="w-3.5 h-3.5" />
             <span>Audit Trail</span>
           </button>
+          <button
+            onClick={() => setActiveAdminTab('verification')}
+            className={`px-4 py-2 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 ${
+              activeAdminTab === 'verification' ? 'bg-amber-500 text-slate-950 shadow-sm' : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <CheckCircle className="w-3.5 h-3.5" />
+            <span>Driver Verification ({driverApplications.filter(a => a.status === 'pending').length})</span>
+          </button>
         </div>
 
         {/* 1. OVERVIEW & STATS TAB */}
@@ -363,8 +376,8 @@ export const AdminControlDashboard: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800/60">
-                    {trips.slice(0, 6).map((trip) => (
-                      <tr key={trip.id} className="hover:bg-slate-800/40 transition-colors">
+                    {trips.slice(0, 6).map((trip, idx) => (
+                      <tr key={`${trip.id}-${idx}`} className="hover:bg-slate-800/40 transition-colors">
                         <td className="py-2.5 px-3 font-mono font-medium text-slate-300">{trip.id}</td>
                         <td className="py-2.5 px-3 uppercase font-semibold text-slate-300">
                           {trip.vehicleType === 'okada' ? '🏍 Okada' : '🛺 Keke'}
@@ -425,9 +438,9 @@ export const AdminControlDashboard: React.FC = () => {
               </div>
             ) : (
               <div className="flex flex-col gap-4">
-                {manualQueueTrips.map((trip) => (
+                {manualQueueTrips.map((trip, idx) => (
                   <div
-                    key={trip.id}
+                    key={`${trip.id}-${idx}`}
                     className="bg-slate-950 border border-amber-500/40 rounded-xl p-4 flex flex-col gap-3 shadow-md"
                   >
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-slate-800 pb-2">
@@ -803,8 +816,8 @@ export const AdminControlDashboard: React.FC = () => {
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col gap-4">
             <h3 className="text-base font-bold text-white">Administrator Audit Trail</h3>
             <div className="flex flex-col gap-2">
-              {auditLogs.map((log) => (
-                <div key={log.id} className="p-3 bg-slate-950 rounded-xl border border-slate-800/80 flex items-start justify-between text-xs">
+              {auditLogs.map((log, idx) => (
+                <div key={`${log.id}-${idx}`} className="p-3 bg-slate-950 rounded-xl border border-slate-800/80 flex items-start justify-between text-xs">
                   <div>
                     <span className="font-bold text-white">{log.action}</span> &middot;{' '}
                     <span className="text-slate-400">{log.adminName}</span>
@@ -815,6 +828,178 @@ export const AdminControlDashboard: React.FC = () => {
                   </span>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* 8. DRIVER VERIFICATION TAB */}
+        {activeAdminTab === 'verification' && (
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col gap-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <CheckCircle className="w-5 h-5 text-amber-400" />
+                  Driver Applicant Verification &amp; Compliance Review
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Review applicant details, National Identification Number (NIN), contact credentials, and biometric liveness before granting operational status.
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="px-3 py-1 bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-lg text-xs font-mono font-bold">
+                  {driverApplications.filter((a) => a.status === 'pending').length} Pending Review
+                </span>
+                <span className="px-3 py-1 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-lg text-xs font-mono font-bold">
+                  {driverApplications.filter((a) => a.status === 'approved').length} Approved
+                </span>
+              </div>
+            </div>
+
+            {/* Filter Tabs Bar */}
+            <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-950 p-2 rounded-xl border border-slate-800">
+              <div className="flex items-center gap-1.5">
+                {(['all', 'pending', 'approved', 'rejected'] as const).map((status) => (
+                  <button
+                    key={status}
+                    type="button"
+                    onClick={() => setVerificationStatusFilter(status)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition-all ${
+                      verificationStatusFilter === status
+                        ? 'bg-amber-500 text-slate-950 font-bold shadow'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    {status === 'all' ? 'All Applications' : `${status} (${driverApplications.filter((a) => a.status === status).length})`}
+                  </button>
+                ))}
+              </div>
+
+              <span className="text-[11px] text-slate-500 font-mono">
+                Showing {driverApplications.filter((a) => verificationStatusFilter === 'all' || a.status === verificationStatusFilter).length} records
+              </span>
+            </div>
+
+            <div className="flex flex-col gap-4">
+              {driverApplications.filter((a) => verificationStatusFilter === 'all' || a.status === verificationStatusFilter).length === 0 ? (
+                <div className="text-center py-12 text-slate-400 text-xs">
+                  <UserCheck className="w-8 h-8 text-slate-600 mx-auto mb-2" />
+                  No driver applications match the selected status filter.
+                </div>
+              ) : (
+                driverApplications
+                  .filter((a) => verificationStatusFilter === 'all' || a.status === verificationStatusFilter)
+                  .map((app, idx) => (
+                  <div
+                    key={`${app.id}-${idx}`}
+                    className="p-5 bg-slate-950 rounded-2xl border border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-4"
+                  >
+                    <div className="flex flex-col gap-2.5">
+                      <div className="flex flex-wrap items-center gap-2.5">
+                        <span className="text-sm font-bold text-white">{app.fullName}</span>
+                        <span
+                          className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                            app.status === 'approved'
+                              ? 'bg-emerald-950 text-emerald-400 border border-emerald-800'
+                              : app.status === 'rejected'
+                              ? 'bg-rose-950 text-rose-400 border border-rose-800'
+                              : 'bg-amber-950 text-amber-300 border border-amber-800'
+                          }`}
+                        >
+                          {app.status === 'pending' ? 'Pending Verification' : app.status}
+                        </span>
+                        <span className="text-[11px] text-slate-500 font-mono">
+                          Ref: {app.id} &middot; Applied {new Date(app.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs text-slate-300">
+                        <div className="flex flex-col">
+                          <span className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Contact Email</span>
+                          <span className="font-mono text-slate-200 truncate">{app.email}</span>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Phone Number</span>
+                          <span className="font-mono text-slate-200">{app.phone}</span>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">National Identity Number (NIN)</span>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <span className="font-mono font-bold text-amber-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
+                              {app.nin}
+                            </span>
+                            <span className="text-[10px] text-emerald-400 font-semibold bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-800/60">
+                              NIMC Verified
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Vehicle &amp; Mode</span>
+                          <span className="text-slate-200">
+                            {(app.vehicleType || 'okada') === 'okada' ? '🏍 Okada' : '🛺 Keke'} &middot; {app.driverMode === 'phone_only' ? 'Basic Phone' : 'App'}
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-mono">
+                            {app.vehicleModel || 'Bajaj Boxer 150cc'} ({app.vehicleReg || 'AKW-PENDING'})
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2 mt-1 text-[11px] text-slate-400">
+                        <span className="inline-flex items-center gap-1 text-emerald-400 font-medium">
+                          <Check className="w-3.5 h-3.5" /> Biometric Face Video &amp; Liveness Verified
+                        </span>
+                        <span>&middot;</span>
+                        <span className="text-slate-400">Corridor: {app.serviceZone || 'Ukana Central Zone'}</span>
+                        <span>&middot;</span>
+                        <span className="text-slate-400">SMS &amp; Email receipts dispatched</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0 pt-2 lg:pt-0 border-t lg:border-t-0 border-slate-800">
+                      {app.status === 'pending' && (
+                        <>
+                          <button
+                            onClick={() => {
+                              approveDriverApplication(app.id);
+                              showToast(`Driver ${app.fullName} approved and enrolled into active fleet!`);
+                            }}
+                            className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-xs transition-colors flex items-center gap-1.5 shadow-md shadow-emerald-500/10"
+                          >
+                            <Check className="w-3.5 h-3.5" />
+                            Approve Driver
+                          </button>
+                          <button
+                            onClick={() => {
+                              rejectDriverApplication(app.id, 'Identity verification criteria unfulfilled');
+                              showToast(`Application for ${app.fullName} rejected.`);
+                            }}
+                            className="px-3 py-2 bg-rose-950 hover:bg-rose-900 text-rose-300 border border-rose-800 font-semibold rounded-xl text-xs transition-colors"
+                          >
+                            Reject
+                          </button>
+                        </>
+                      )}
+                      {app.status === 'approved' && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-emerald-400 font-medium flex items-center gap-1">
+                            <CheckCircle className="w-4 h-4" /> Active Driver Profile
+                          </span>
+                        </div>
+                      )}
+                      {app.status === 'rejected' && (
+                        <button
+                          onClick={() => {
+                            approveDriverApplication(app.id);
+                            showToast(`Application for ${app.fullName} reconsidered & approved!`);
+                          }}
+                          className="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg"
+                        >
+                          Reconsider
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         )}

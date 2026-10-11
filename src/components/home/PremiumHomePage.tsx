@@ -9,13 +9,6 @@ import { DriverOnboardingModal } from './DriverOnboardingModal';
 import { RealMobilityAndJobsSection } from './RealMobilityAndJobsSection';
 import { UkadaLogo } from '../common/UkadaLogo';
 import {
-  ASSET_OKADA,
-  ASSET_KEKE,
-  ASSET_OKADA_PICKUP,
-  ASSET_KEKE_BOARDING,
-  ASSET_RIDE_BOOKED_APP,
-} from '../../data/mockData';
-import {
   Navigation,
   Smartphone,
   Shield,
@@ -148,16 +141,6 @@ export const PremiumHomePage: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
           {/* Left Column: Hero Copy & Value Proposition (5 Cols) */}
           <div className="lg:col-span-5 flex flex-col gap-6 z-10">
-            <div className="flex flex-wrap items-center gap-3">
-              <UkadaLogo size="sm" subtitle="NIGERIA TRANSIT TECH" />
-              <div className="inline-flex items-center gap-2 px-3 py-1 bg-slate-900 border border-slate-800 rounded-full w-fit">
-                <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-                <span className="text-xs font-semibold text-slate-300">
-                  Ukana &middot; Commercial Corridors &middot; Ikot Ekpene
-                </span>
-              </div>
-            </div>
-
             <div className="flex flex-col gap-3">
               <h1 className="gsap-hero-text text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white leading-tight">
                 Hyperlocal Mobility,{' '}
@@ -182,7 +165,7 @@ export const PremiumHomePage: React.FC = () => {
               </button>
 
               <button
-                onClick={() => setShowDriverModal(true)}
+                onClick={() => setActiveView('driver-job')}
                 className="px-5 py-3.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-sm rounded-xl border border-slate-800 hover:border-slate-700 active:scale-[0.98] transition-all flex items-center gap-2"
               >
                 <Users className="w-4 h-4 text-amber-400" />
@@ -295,7 +278,7 @@ export const PremiumHomePage: React.FC = () => {
       </section>
 
       {/* ================================================================= */}
-      {/* 2. REAL MOBILITY SHOWCASE & DRIVER CAREERS OPPORTUNITIES HUB      */}
+      {/* 2. REAL MOBILITY & RECRUITMENT REPUTATION SHOWCASE               */}
       {/* ================================================================= */}
       <section className="py-14 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
         <RealMobilityAndJobsSection
